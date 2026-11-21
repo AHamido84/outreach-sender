@@ -41,3 +41,45 @@ describe("template rendering", () => {
     expect(e.missing).toEqual(["zzz"]);
   });
 });
+
+describe("rich (HTML) bodies", () => {
+  const v = buildVars({ company, sender, contact });
+  const body =
+    '<p style="text-align: center">أهلاً <strong>{first_name}</strong></p><p>سجّل من <a href="https://x.co/reg?a=1&amp;b=2">رابط التسجيل</a> أو <a href="{profile_link}">ملفنا</a></p><p><span style="color: #e11d48; font-family: Georgia">{signature}</span></p>';
+  it("detects HTML vs plain bodies", async () => {
+    const { isHtmlBody } = await import("@/lib/template");
+    expect(isHtmlBody(body)).toBe(true);
+    expect(isHtmlBody("سطر\nسطر <3")).toBe(false);
+  });
+  it("renders variables (escaped, line breaks kept) inside HTML with inline styles for email", () => {
+    const e = renderEmail({ subject: "s", body, language: "AR" }, { ...v, first_name: "<محمد>" });
+    expect(e.html).toContain("&lt;محمد&gt;");
+    expect(e.html).toContain('href="https://x.co/p"');
+    expect(e.html).toContain("أحمد<br>مدير");
+    expect(e.html).toContain('style="margin:0 0 12px;text-align: center"');
+    expect(e.html).toMatch(/<a style="color:#0f766e;" href=|<a href="[^"]*" style="color:#0f766e;"/);
+    expect(e.missing).toEqual([]);
+  });
+  it("builds a plain-text part with link text and URL", () => {
+    const e = renderEmail({ subject: "s", body, language: "AR" }, v);
+    expect(e.text).toContain("رابط التسجيل (https://x.co/reg?a=1&b=2)");
+    expect(e.text).toContain("ملفنا (https://x.co/p)");
+    expect(e.text).toContain("أحمد\nمدير");
+    expect(e.text).not.toContain("<");
+  });
+  it("converts old plain bodies to editor HTML", async () => {
+    const { plainToHtml } = await import("@/lib/template");
+    expect(plainToHtml("أ\nب\n\nج <x>")).toBe("<p>أ<br>ب</p><p>ج &lt;x&gt;</p>");
+  });
+});
+
+describe("rich bodies: URLs from variables", () => {
+  it("makes bare URL values clickable and fills href variables", () => {
+    const v = { ...buildVars({ company, sender, contact }), booking_link: "https://cal.com/x?a=1&b=2" };
+    const e = renderEmail({ subject: "s", body: '<p>{booking_link}</p><p><a href="{booking_link}">احجز</a></p><p><a href="{missing_link}">x</a></p>', language: "AR" }, v);
+    expect(e.html).toContain('<a href="https://cal.com/x?a=1&amp;b=2" style="color:#0f766e;">https://cal.com/x?a=1&amp;b=2</a>');
+    expect(e.html).toContain('href="https://cal.com/x?a=1&amp;b=2" style="color:#0f766e;">احجز</a>');
+    expect(e.missing).toEqual(["missing_link"]);
+    expect(e.text).toContain("احجز (https://cal.com/x?a=1&b=2)");
+  });
+});

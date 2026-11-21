@@ -126,6 +126,14 @@ export const ar = {
     testSent: (to: string) => `تم إرسال رسالة تجربة إلى ${to}`, saved: "تم حفظ القالب ✓", deleteConfirm: "سيتم حذف هذا القالب من الشيت.",
     new: "قالب جديد", empty: "لا توجد قوالب لهذه اللغة", unsaved: "تغييرات غير محفوظة",
   },
+  editor: {
+    font: "الخط", defaultFont: "الخط الافتراضي", size: "الحجم", defaultSize: "الحجم", bold: "عريض", italic: "مائل", underline: "تحته خط",
+    strike: "يتوسطه خط", color: "لون النص", highlight: "لون الخلفية", customColor: "لون مخصص", noColor: "بدون لون", link: "رابط",
+    linkText: "النص الظاهر", linkTextPh: "مثال: رابط التسجيل", linkUrl: "الرابط", unlink: "إزالة الرابط",
+    linkHint: "تقدر تكتب متغير كرابط، مثل {booking_link} أو {profile_link}. ظلّل كلمة في النص قبل الضغط لتحويلها لرابط.",
+    alignRight: "محاذاة يمين", alignCenter: "توسيط", alignLeft: "محاذاة يسار", bullets: "قائمة نقطية", numbers: "قائمة مرقمة",
+    clear: "إزالة التنسيق", undo: "تراجع", redo: "إعادة",
+  },
   send: {
     title: "الإرسال", manual: "إرسال يدوي", schedule: "جدولة", auto: "الإرسال التلقائي",
     mode: { count: "عدد", filter: "فلتر", select: "اختيار جهات" } as Record<string, string>,

@@ -10,6 +10,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tiptap/extension-text-align": "^3.35.0",
+    "@tiptap/extension-text-style": "^3.35.0",
+    "@tiptap/pm": "^3.35.0",
+    "@tiptap/react": "^3.35.0",
+    "@tiptap/starter-kit": "^3.35.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "google-auth-library": "^11.3.4",
