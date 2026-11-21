@@ -115,6 +115,26 @@ When I add a company (paste the sheet URL), the app checks access and runs **"In
 - Each cron call must finish within the function time limit: small batches, and stop early and continue next time.
 - Vercel Hobby cron only runs daily, so **also include a GitHub Actions workflow** (`.github/workflows/cron.yml`) that calls the endpoint every 10 minutes using the repo secrets `CRON_URL` and `CRON_SECRET`. Document both options.
 
+# Automatic sending (first-class feature)
+Once a company is set up, sending must run **fully automatically** with no clicks:
+- **Turning it on:** one big **Auto Sending** switch on the company dashboard and on the Send page (stored in the Sender tab as `Auto Sending = on/off`).
+- **What runs on its own,** every scheduler tick (every 10 minutes):
+  - new contacts that are Ready get their first email
+  - due follow-ups go out on their day, in the same thread
+  - replies, bounces and unsubscribes are detected and stop the sequence
+  - monday is updated
+  - scheduled one-off runs execute at their time
+- **Pacing:** spread the Daily Limit evenly across the send window (e.g. 30/day in a 9–13 window → ~1 email every 8 minutes) instead of sending them all at once. Never exceed `Emails Per Run`, the Daily Limit, or the window. Skip days that aren't in Send Days.
+- **Auto Sending panel**, on the dashboard and the Send page:
+  - status: running / paused / outside window / daily limit reached / stopped by bounce guard / sender not configured
+  - next run time
+  - today's progress (sent / limit)
+  - the last run's result with a link to its Send Log rows
+  - a forecast: how many days until the current Ready contacts are all contacted at this pace
+  - Pause/Resume, plus "Run now" (one batch immediately, still respecting the limits)
+- **Safety:** auto sending refuses to start until the sender passes Test SMTP and at least one active step-0 template exists for each language in use. It turns itself off (with a visible warning and an Activity entry) on a high bounce rate, a repeated SMTP auth failure (3 runs in a row), or an empty template variable.
+- **Scheduler setup:** the app ships the GitHub Actions workflow `.github/workflows/cron.yml` (every 10 minutes) and a "Scheduler health" indicator (last cron call time). It warns if no cron call happened in the last 30 minutes and explains how to fix it.
+
 # Google Sheets access rules
 - Find columns **by header name**, never by position, so I can reorder or add columns in the sheet.
 - Use batchGet/batchUpdate, cache reads for ~20s, retry 429 with backoff.
