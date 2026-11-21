@@ -83,3 +83,13 @@ describe("rich bodies: URLs from variables", () => {
     expect(e.text).toContain("احجز (https://cal.com/x?a=1&b=2)");
   });
 });
+
+describe("web fonts", () => {
+  it("links Cairo only when the body uses it", () => {
+    const v = buildVars({ company, sender, contact });
+    const withCairo = renderEmail({ subject: "s", body: '<p><span style="font-family: Cairo, Tahoma, sans-serif">مرحبا</span></p>', language: "AR" }, v);
+    expect(withCairo.html).toContain("fonts.googleapis.com/css2?family=Cairo");
+    const plain = renderEmail({ subject: "s", body: "<p>مرحبا</p>", language: "AR" }, v);
+    expect(plain.html).not.toContain("fonts.googleapis.com");
+  });
+});
