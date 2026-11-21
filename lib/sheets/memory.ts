@@ -106,6 +106,8 @@ export class MemorySheetStore implements SheetStore {
     for (const req of requests as Record<string, any>[]) {
       if (req.addSheet) {
         const p = req.addSheet.properties || {};
+        if (b.tabs.some((t) => t.title === p.title))
+          throw new AppError("sheets_api", `Invalid requests[0].addSheet: A sheet with the name "${p.title}" already exists. Please enter another name.`);
         b.tabs.push({
           sheetId: this.nextId++,
           title: p.title,
