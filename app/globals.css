@@ -1,3 +1,5 @@
+/* Cairo: offered as a template font in the email editor */
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

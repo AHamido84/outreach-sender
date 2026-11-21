@@ -161,7 +161,11 @@ function wrapHtml(inner: string, language: string): string {
   const rtl = isRtlLanguage(language);
   const dir = rtl ? "rtl" : "ltr";
   const align = rtl ? "right" : "left";
-  return `<!doctype html><html dir="${dir}"><body><div dir="${dir}" style="direction:${dir};text-align:${align};font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.7;color:#111">${inner}</div></body></html>`;
+  // Web fonts used in the body (e.g. Cairo) are linked; mail apps that don't load them use the fallback font.
+  const fonts = /font-family:[^;"]*\bCairo\b/i.test(inner)
+    ? `<head><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet"></head>`
+    : "";
+  return `<!doctype html><html dir="${dir}">${fonts}<body><div dir="${dir}" style="direction:${dir};text-align:${align};font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.7;color:#111">${inner}</div></body></html>`;
 }
 
 /** Plain text body → simple HTML (escaped, links clickable, line breaks), RTL for Arabic. */

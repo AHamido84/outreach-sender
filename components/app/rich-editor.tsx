@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils";
 
 export type RichEditorHandle = { insertText: (text: string) => void };
 
-// Fonts that exist on almost every email client / OS.
+// Email-safe fonts, plus Cairo (a web font: shown where the mail app loads web fonts, otherwise falls back to Tahoma).
 const FONTS: [string, string][] = [
-  ["", ar.editor.defaultFont], ["Tahoma, sans-serif", "Tahoma"], ["Arial, sans-serif", "Arial"], ["Verdana, sans-serif", "Verdana"],
+  ["", ar.editor.defaultFont], ["Cairo, Tahoma, sans-serif", "Cairo"], ["Tahoma, sans-serif", "Tahoma"], ["Arial, sans-serif", "Arial"], ["Verdana, sans-serif", "Verdana"],
   ["'Trebuchet MS', sans-serif", "Trebuchet MS"], ["Georgia, serif", "Georgia"], ["'Times New Roman', serif", "Times New Roman"],
   ["'Courier New', monospace", "Courier New"],
 ];
