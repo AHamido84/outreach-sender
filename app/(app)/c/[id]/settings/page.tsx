@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/app/bits";
 import { ErrorBox } from "@/components/app/error-box";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ar } from "@/content/ar";
-import { loadCompany, type Ctx } from "@/lib/company";
+import { loadWithSources, type Ctx } from "@/lib/company";
 import { maskSecret } from "@/lib/crypto";
 import { toErrorInfo } from "@/lib/errors";
 import { MONDAY_FIELDS, TABS } from "@/lib/schema";
@@ -13,13 +13,14 @@ import { CompanyTab } from "./company";
 import { DncTab } from "./dnc";
 import { MondayTab } from "./monday";
 import { SenderTab } from "./sender";
+import { SourcesTab } from "./sources";
 
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params;
   const { tab } = await searchParams;
-  let ctx: Ctx;
+  let ctx: Ctx & { sources: NonNullable<Ctx["sources"]> };
   try {
-    ctx = await loadCompany(id);
+    ctx = await loadWithSources(id);
   } catch (e) {
     return (
       <>
@@ -59,6 +60,18 @@ export default async function SettingsPage({ params, searchParams }: { params: P
             updateOnReply={!/^(no|false|0|off)$/i.test(m["Update Status On Reply"] || "yes")}
             mapping={Object.fromEntries(MONDAY_FIELDS.map((f) => [f, ctx.monday.mapping[f] || ""]))}
             failed={ctx.t[TABS.contacts].rows.filter((r) => get(r, "monday Status").startsWith("Failed")).length}
+          />
+        </TabsContent>
+        <TabsContent value="sources">
+          <SourcesTab
+            id={id}
+            serviceAccount={getStore().serviceAccountEmail()}
+            values={Object.fromEntries(Object.entries(ctx.sources.values).filter(([k]) => !/API Key/.test(k)))}
+            keys={{
+              apollo: maskSecret(ctx.sources.values["Apollo API Key"]),
+              hunter: maskSecret(ctx.sources.values["Hunter API Key"]),
+              outscraper: maskSecret(ctx.sources.values["Outscraper API Key"]),
+            }}
           />
         </TabsContent>
         <TabsContent value="dnc">

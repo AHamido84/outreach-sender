@@ -5,6 +5,8 @@ import Papa from "papaparse";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { appendImport, getSavedMapping, previewImport } from "@/app/actions/contacts";
+import { readExternalSheet } from "@/app/actions/sources";
+import { CopyButton } from "@/components/app/copy-button";
 import { ErrorBox } from "@/components/app/error-box";
 import { Kpi, Section } from "@/components/app/bits";
 import { Pill } from "@/components/app/status-badge";
@@ -30,7 +32,7 @@ function fromMatrix(m: unknown[][]): Parsed {
 
 const TONE: Record<string, string> = { valid: "Done", invalid: "Invalid", duplicate: "Duplicate", dnc: "Unsubscribed" };
 
-export function ImportWizard({ id, defaults }: { id: string; defaults: { allowSameDomain: boolean; allowResend: boolean } }) {
+export function ImportWizard({ id, defaults, serviceAccount }: { id: string; defaults: { allowSameDomain: boolean; allowResend: boolean }; serviceAccount: string }) {
   const [step, setStep] = useState(1);
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [paste, setPaste] = useState("");
@@ -45,6 +47,20 @@ export function ImportWizard({ id, defaults }: { id: string; defaults: { allowSa
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [done, setDone] = useState<null | { added: number; mondayCreated: number }>(null);
   const [pending, start] = useTransition();
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [sheetTabs, setSheetTabs] = useState<string[]>([]);
+  const [sheetTab, setSheetTab] = useState("");
+
+  const onSheet = (tab?: string) =>
+    start(async () => {
+      setError(null);
+      const r = await readExternalSheet(id, sheetUrl, tab);
+      if (!r.ok) return setError(r.error);
+      setSheetTabs(r.data.tabs);
+      setSheetTab(r.data.tab);
+      if (!source) setSource(r.data.title);
+      loadParsed(fromMatrix(r.data.matrix));
+    });
 
   const loadParsed = (p: Parsed) =>
     start(async () => {
@@ -146,6 +162,24 @@ export function ImportWizard({ id, defaults }: { id: string; defaults: { allowSa
               <span className="text-xs text-muted-foreground">.csv · .xlsx</span>
               <input type="file" accept=".csv,.xlsx,.txt,.tsv" className="sr-only" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
             </label>
+            <div className="space-y-1.5 rounded-xl border p-3">
+              <Label htmlFor="gs">{ar.sources.fromSheet} — {ar.sources.sheetUrl}</Label>
+              <div className="flex flex-wrap gap-2">
+                <Input id="gs" dir="ltr" className="min-w-64 flex-1" value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/…" />
+                {sheetTabs.length > 1 && (
+                  <select aria-label={ar.sources.sheetTab} className="h-8 rounded-lg border bg-background px-2 text-sm" value={sheetTab} onChange={(e) => { setSheetTab(e.target.value); onSheet(e.target.value); }}>
+                    {sheetTabs.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                )}
+                <Button variant="outline" disabled={!sheetUrl.trim() || pending} onClick={() => onSheet(sheetTab || undefined)}>{ar.sources.readSheet}</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">{ar.sources.providers.sheet.desc}</p>
+              <p className="text-xs text-muted-foreground">{ar.sources.sheetShare}</p>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <code className="ltr rounded bg-muted px-2 py-1">{serviceAccount}</code>
+                <CopyButton value={serviceAccount} />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="paste">{ar.import.paste}</Label>
               <Textarea id="paste" dir="ltr" rows={6} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={"Company\tName\tEmail\tWebsite\nAcme\tJohn\tjohn@acme.com\tacme.com"} />

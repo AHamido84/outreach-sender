@@ -97,6 +97,8 @@ export type Ctx = {
   company: Kv;
   sender: Kv;
   monday: Kv;
+  /** Only when loaded with TABS.sources (see loadWithSources). */
+  sources?: Kv;
   templates: Template[];
   w: Writer;
 };
@@ -121,11 +123,14 @@ export async function loadCompany(id: string, extraTabs: string[] = []): Promise
     company: toKv(t[TABS.company]),
     sender: toKv(t[TABS.sender]),
     monday: toKv(t[TABS.monday], MONDAY_FIELDS),
+    sources: t[TABS.sources] ? toKv(t[TABS.sources]) : undefined,
     templates: t[TABS.templates].rows.map(toTemplate).filter((x) => x.id || x.subject || x.body),
     w: new Writer(store, id),
   };
   // Plain secrets typed directly into the sheet are accepted and re-saved encrypted.
-  for (const [tab, kv] of [[TABS.sender, ctx.sender], [TABS.monday, ctx.monday]] as const) {
+  const secretTabs: [string, Kv][] = [[TABS.sender, ctx.sender], [TABS.monday, ctx.monday]];
+  if (ctx.sources) secretTabs.push([TABS.sources, ctx.sources]);
+  for (const [tab, kv] of secretTabs) {
     for (const key of SECRET_KEYS[tab]) {
       const v = kv.values[key];
       if (v && !isEncrypted(v)) setKv(ctx.w, kv, key, encrypt(v));
@@ -204,4 +209,17 @@ export async function logActivity(ctx: Pick<Ctx, "sheetId">, action: string, det
   await appendObjects(getStore(), ctx.sheetId, TABS.activity, [
     { Time: new Date().toISOString(), Action: action, Details: details.slice(0, 5000) },
   ]).catch(() => {});
+}
+
+/** Load a company including the Sources tab; older sheets get the tab created on first use (same as "Repair sheet"). */
+export async function loadWithSources(id: string, extraTabs: string[] = []): Promise<Ctx & { sources: Kv }> {
+  try {
+    const ctx = await loadCompany(id, [TABS.sources, ...extraTabs]);
+    return ctx as Ctx & { sources: Kv };
+  } catch (e) {
+    if (!isAppError(e, "sheet_not_initialized")) throw e;
+    const { initializeSheet } = await import("./init");
+    await initializeSheet(id);
+    return (await loadCompany(id, [TABS.sources, ...extraTabs])) as Ctx & { sources: Kv };
+  }
 }

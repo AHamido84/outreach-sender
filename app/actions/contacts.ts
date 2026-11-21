@@ -2,14 +2,15 @@
 import { revalidatePath } from "next/cache";
 import { act } from "@/lib/action";
 import { requireSession } from "@/lib/auth-server";
-import { loadCompany, logActivity, senderSettings } from "@/lib/company";
-import { buildDnc, classifyImport, cleanEmail, isBlocked, isValidEmail, type DedupOptions } from "@/lib/emails";
+import { loadCompany, logActivity } from "@/lib/company";
+import { buildDnc, cleanEmail, isBlocked, isValidEmail, type DedupOptions } from "@/lib/emails";
 import { AppError } from "@/lib/errors";
 import { IMPORT_FIELDS } from "@/lib/import-map";
-import { mondayConfig, syncContactToMonday } from "@/lib/monday";
+import { syncContactToMonday } from "@/lib/monday";
+import { appendContactRows, checkRows, countChecks, type ImportRow } from "@/lib/import-core";
 import { TABS } from "@/lib/schema";
 import { getStore } from "@/lib/sheets";
-import { get, type Row } from "@/lib/table";
+import { get } from "@/lib/table";
 import { normalizeLanguage } from "@/lib/template";
 
 const EDITABLE = [...IMPORT_FIELDS, "Status", "Next Send At"];
@@ -98,7 +99,6 @@ export async function bulkAction(id: string, ids: string[], action: "tags" | "re
 
 // ---------- Import ----------
 
-type ImportRow = Partial<Record<(typeof IMPORT_FIELDS)[number], string>>;
 
 export async function getSavedMapping(id: string, source: string) {
   return act(async () => {
@@ -114,32 +114,15 @@ export async function getSavedMapping(id: string, source: string) {
   });
 }
 
-function dedupOptions(ctx: Awaited<ReturnType<typeof loadCompany>>, opts?: DedupOptions): DedupOptions {
-  const s = senderSettings(ctx);
-  return { allowSameDomain: opts?.allowSameDomain ?? s.allowSameDomain, allowResend: opts?.allowResend ?? s.allowResend };
-}
-
 export async function previewImport(id: string, rows: ImportRow[], opts?: DedupOptions) {
   return act(async () => {
     await requireSession();
     const ctx = await loadCompany(id);
-    const existing = ctx.t[TABS.contacts].rows.map((r) => ({ email: get(r, "Email"), website: get(r, "Website") }));
-    const dnc = buildDnc(ctx.t[TABS.dnc].rows.map((r) => get(r, "Email or Domain")));
-    const checks = classifyImport(rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc, dedupOptions(ctx, opts));
-    const counts = { valid: 0, invalid: 0, duplicate: 0, dnc: 0 };
-    checks.forEach((c) => counts[c.status]++);
-    return { counts, checks };
+    const checks = checkRows(ctx, rows, opts);
+    return { counts: countChecks(checks), checks };
   });
 }
 
-function nextIdFactory(rows: Row[]) {
-  let max = 0;
-  for (const r of rows) {
-    const m = get(r, "ID").match(/^C(\d+)$/);
-    if (m) max = Math.max(max, Number(m[1]));
-  }
-  return () => `C${String(++max).padStart(4, "0")}`;
-}
 
 export async function appendImport(
   id: string,
@@ -149,61 +132,17 @@ export async function appendImport(
     await requireSession();
     if (input.rows.length > 5000) throw new AppError("invalid_input", "max 5000 rows");
     const ctx = await loadCompany(id, [TABS.mappings]);
-    const t = ctx.t[TABS.contacts];
-    const existing = t.rows.map((r) => ({ email: get(r, "Email"), website: get(r, "Website") }));
-    const dnc = buildDnc(ctx.t[TABS.dnc].rows.map((r) => get(r, "Email or Domain")));
-    const checks = classifyImport(input.rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc, dedupOptions(ctx, input));
-    const nextId = nextIdFactory(t.rows);
-    const now = new Date().toISOString();
-    const added: Row[] = [];
-    input.rows.forEach((r, i) => {
-      const c = checks[i];
-      if (c.status !== "valid" && !input.includeBad) return;
-      if (c.status === "dnc") return; // never import blocked contacts
-      const obj: Record<string, string> = {};
-      for (const f of IMPORT_FIELDS) obj[f] = String(r[f] ?? "").trim();
-      obj.ID = nextId();
-      obj["Added At"] = now;
-      obj.Source = obj.Source || input.source || "Import";
-      obj.Email = c.email;
-      obj.Language = normalizeLanguage(obj.Language);
-      obj.Status = c.status === "valid" ? input.initialStatus : c.status === "invalid" ? "Invalid" : "Duplicate";
-      if (c.status !== "valid") obj.Error = c.reason || "";
-      added.push(ctx.w.append(t, obj));
-    });
     // Remember the mapping for this source
     if (input.source.trim()) {
+      const now = new Date().toISOString();
       const mt = ctx.t[TABS.mappings];
       const row = mt.rows.find((r) => get(r, "Source").toLowerCase() === input.source.trim().toLowerCase());
       const json = JSON.stringify(input.mapping);
       if (row) ctx.w.update(mt, row, { Mapping: json, "Updated At": now });
       else ctx.w.append(mt, { Source: input.source.trim(), Mapping: json, "Updated At": now });
     }
-    await ctx.w.flush();
-    // monday: create items at import when configured (bounded time; the rest can be retried from the table)
-    let mondayCreated = 0;
-    const m = mondayConfig(ctx);
-    if (m.createOn === "import" && m.token && m.boardId) {
-      // Re-load so rows have their real sheet positions.
-      const fresh = await loadCompany(id);
-      const ids = new Set(added.map((a) => get(a, "ID")));
-      const deadline = Date.now() + 35_000;
-      for (const r of fresh.t[TABS.contacts].rows.filter((x) => ids.has(get(x, "ID")) && get(x, "Status") !== "Invalid")) {
-        if (Date.now() > deadline) break;
-        const res = await syncContactToMonday(fresh, r, "import");
-        if (res.ok && !res.skipped) mondayCreated++;
-        if (fresh.w.pending > 20) await fresh.w.flush();
-      }
-      await fresh.w.flush();
-    }
-    const counts = { valid: 0, invalid: 0, duplicate: 0, dnc: 0 };
-    checks.forEach((c) => counts[c.status]++);
-    await logActivity(
-      ctx,
-      "Import",
-      `${added.length} contacts added from ${input.source || "import"} (valid ${counts.valid}, invalid ${counts.invalid}, duplicate ${counts.duplicate}, dnc ${counts.dnc})${mondayCreated ? `, monday ${mondayCreated}` : ""}`,
-    );
+    const r = await appendContactRows(ctx, input.rows, { ...input, source: input.source });
     revalidatePath(`/c/${id}`, "layout");
-    return { added: added.length, counts, mondayCreated };
+    return { added: r.added, counts: r.counts, mondayCreated: r.mondayCreated };
   });
 }

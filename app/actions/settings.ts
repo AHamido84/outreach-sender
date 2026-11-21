@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getInbox, getMailer, getMonday } from "@/lib/adapters";
 import { act } from "@/lib/action";
 import { requireSession } from "@/lib/auth-server";
-import { loadCompany, logActivity, secret, senderSettings } from "@/lib/company";
+import { loadCompany, loadWithSources, logActivity, secret, senderSettings } from "@/lib/company";
 import { encrypt } from "@/lib/crypto";
 import { checkDomain } from "@/lib/dns-check";
 import { domainOf, websiteDomain } from "@/lib/emails";
@@ -11,11 +11,11 @@ import { autoBlockers } from "@/lib/engine";
 import { AppError } from "@/lib/errors";
 import { clearMondayCache, mondayConfig } from "@/lib/monday";
 import { FIELD_COLUMN_TYPES, itemUrl } from "@/lib/monday-values";
-import { COMPANY_KEYS, MONDAY_FIELDS, MONDAY_KEYS, SENDER_KEYS, TABS, type KvDef, type MondayField } from "@/lib/schema";
+import { COMPANY_KEYS, MONDAY_FIELDS, MONDAY_KEYS, SENDER_KEYS, SOURCES_KEYS, TABS, type KvDef, type MondayField } from "@/lib/schema";
 import { getStore } from "@/lib/sheets";
 import { get, setKv } from "@/lib/table";
 
-const DEFS: Record<string, KvDef[]> = { [TABS.company]: COMPANY_KEYS, [TABS.sender]: SENDER_KEYS, [TABS.monday]: MONDAY_KEYS };
+const DEFS: Record<string, KvDef[]> = { [TABS.company]: COMPANY_KEYS, [TABS.sender]: SENDER_KEYS, [TABS.monday]: MONDAY_KEYS, [TABS.sources]: SOURCES_KEYS };
 const SMTP_KEYS = ["SMTP Host", "SMTP Port", "SMTP Secure", "SMTP User", "SMTP Password", "From Email"];
 
 /** Save key/value settings. Secrets: empty = keep, value = encrypt. Only changed cells are written. */
@@ -24,8 +24,8 @@ export async function saveSettings(id: string, tab: string, values: Record<strin
     await requireSession();
     const defs = DEFS[tab];
     if (!defs) throw new AppError("invalid_input");
-    const ctx = await loadCompany(id);
-    const kv = tab === TABS.company ? ctx.company : tab === TABS.sender ? ctx.sender : ctx.monday;
+    const ctx = tab === TABS.sources ? await loadWithSources(id) : await loadCompany(id);
+    const kv = tab === TABS.company ? ctx.company : tab === TABS.sender ? ctx.sender : tab === TABS.sources ? ctx.sources! : ctx.monday;
     const changed: string[] = [];
     for (const d of defs) {
       if (d.system || !(d.key in values)) continue;
