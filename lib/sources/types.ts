@@ -63,6 +63,8 @@ export type SearchResult = {
   /** Outscraper: the provider is still working; poll with this id. */
   pendingId?: string;
   info?: string;
+  /** The provider's plan capped the number of results (e.g. Hunter free plan: 10). */
+  planLimited?: number;
 };
 
 export type RevealResult = { items: Found[]; credits?: number; missing: number };

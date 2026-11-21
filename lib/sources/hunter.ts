@@ -1,4 +1,5 @@
 // Hunter.io Domain Search: emails of people at a company domain. Docs: https://hunter.io/api-documentation/v2
+import { isAppError } from "../errors";
 import { providerFetch, str } from "./http";
 import type { HunterFilters, SearchResult } from "./types";
 
@@ -11,6 +12,19 @@ type HunterEmail = {
 };
 
 export async function hunterSearch(key: string, f: HunterFilters): Promise<SearchResult> {
+  try {
+    return await hunterSearchOnce(key, f);
+  } catch (e) {
+    // Free/low plans cap limit + offset at 10 ("pagination_error"): retry within the plan's cap.
+    if (isAppError(e, "source_params") && /pagination_error/.test(e.detail || "") && (f.limit ?? 25) + (f.offset ?? 0) > 10) {
+      const r = await hunterSearchOnce(key, { ...f, limit: 10, offset: 0 });
+      return { ...r, planLimited: 10 };
+    }
+    throw e;
+  }
+}
+
+async function hunterSearchOnce(key: string, f: HunterFilters): Promise<SearchResult> {
   const q = new URLSearchParams();
   const domain = str(f.domain).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
   if (domain) q.set("domain", domain);

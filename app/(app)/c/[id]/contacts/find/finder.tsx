@@ -19,7 +19,7 @@ import type { Found, Provider } from "@/lib/sources/types";
 import { cn } from "@/lib/utils";
 
 type Defaults = { tags: string; status: "Ready" | "New"; allowSameDomain: boolean; allowResend: boolean; hunterType: string; hunterMin: number; outFindEmails: boolean };
-type Results = { items: Found[]; status: string[]; reasons: string[]; total?: number; page?: number; pendingId?: string; info?: string };
+type Results = { items: Found[]; status: string[]; reasons: string[]; total?: number; page?: number; pendingId?: string; info?: string; planLimited?: number };
 
 const TONE: Record<string, string> = { valid: "Done", duplicate: "Duplicate", dnc: "Unsubscribed", invalid: "Invalid", reveal: "Pending", no_email: "Completed" };
 const SENIORITIES = ["owner", "founder", "c_suite", "director", "manager", "head", "vp", "senior"];
@@ -173,6 +173,7 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
                 </Field>
                 <Field id="h-m" label={ar.sources.f.minConfidence}><Input id="h-m" type="number" min={0} max={100} value={hMin} onChange={(e) => setHMin(Number(e.target.value))} /></Field>
                 <Chips label={ar.sources.f.seniorities} value={hSeniority} onChange={setHSeniority} options={H_SENIORITY.map((s) => [s, ar.sources.hunterSeniority[s]])} />
+                <p className="text-xs text-muted-foreground md:col-span-2">{ar.sources.hunterTip}</p>
               </div>
             )}
             {provider === "outscraper" && (
@@ -206,6 +207,7 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
           actions={results.items.length > 0 && <Button size="sm" variant="outline" onClick={selectNew}>{ar.sources.selectAllNew}</Button>}
         >
           {results.info && <p className="mb-2 text-xs text-muted-foreground ltr">{results.info}</p>}
+          {results.planLimited && <p className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{ar.sources.planLimited(results.planLimited)}</p>}
           {!results.items.length ? (
             <p className="text-sm text-muted-foreground">{ar.sources.noResults}</p>
           ) : (

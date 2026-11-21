@@ -93,3 +93,19 @@ describe("provider errors", () => {
       .toEqual({ Company: "Acme", "Contact Name": "Ali", Title: "CEO", Email: "a@acme.com", Website: "https://acme.com", City: "Riyadh", Source: "Apollo", Notes: "https://linkedin.com/in/a" });
   });
 });
+
+describe("Hunter plan limit", () => {
+  it("retries with limit 10 on pagination_error and flags it", async () => {
+    const f = vi.fn(async (url: string) => {
+      const limit = new URL(url).searchParams.get("limit");
+      if (limit !== "10")
+        return new Response(JSON.stringify({ errors: [{ id: "pagination_error", code: 400, details: "The search results are limited to 10 email addresses on your current plan." }] }), { status: 400 });
+      return new Response(JSON.stringify({ data: { domain: "d.org", organization: "D", emails: [{ value: "a@d.org", confidence: 90 }] }, meta: { results: 1 } }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", f);
+    const r = await hunterSearch("K", { domain: "d.org", limit: 50 });
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(r.planLimited).toBe(10);
+    expect(r.items[0].email).toBe("a@d.org");
+  });
+});
