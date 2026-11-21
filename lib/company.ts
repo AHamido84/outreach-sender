@@ -14,23 +14,40 @@ export type CompanyRef = { id: string; name: string; url: string; color: string;
 
 // ---------- Registry ----------
 
-async function ensureRegistry(): Promise<void> {
+let ensuring: Promise<void> | null = null;
+
+/** Create the registry tabs if missing. Serialized per instance; tolerant of another instance doing it at the same time. */
+function ensureRegistry(): Promise<void> {
+  if (!ensuring) ensuring = doEnsureRegistry().finally(() => (ensuring = null));
+  return ensuring;
+}
+
+async function doEnsureRegistry(): Promise<void> {
   const store = getStore();
   const sid = registrySheetId();
   if (!sid) throw new AppError("registry_missing");
-  const meta = await store.getMeta(sid);
-  const have = new Set(meta.tabs.map((t) => t.title));
-  const add = [REGISTRY_TABS.companies, REGISTRY_TABS.system].filter((t) => !have.has(t));
-  if (add.length) {
-    await store.batchUpdate(
-      sid,
-      add.map((title) => ({ addSheet: { properties: { title, rightToLeft: true, gridProperties: { frozenRowCount: 1 } } } })),
-    );
-    const data = [];
-    if (add.includes(REGISTRY_TABS.companies)) data.push({ range: `'${REGISTRY_TABS.companies}'!A1`, values: [REGISTRY_HEADERS] });
-    if (add.includes(REGISTRY_TABS.system)) data.push({ range: `'${REGISTRY_TABS.system}'!A1`, values: [["key", "value"]] });
-    await store.batchUpdateValues(sid, data);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    store.invalidate(sid);
+    const meta = await store.getMeta(sid);
+    const have = new Set(meta.tabs.map((t) => t.title));
+    const add = [REGISTRY_TABS.companies, REGISTRY_TABS.system].filter((t) => !have.has(t));
+    if (!add.length) break;
+    try {
+      await store.batchUpdate(
+        sid,
+        add.map((title) => ({ addSheet: { properties: { title, rightToLeft: true, gridProperties: { frozenRowCount: 1 } } } })),
+      );
+    } catch (e) {
+      if (attempt === 0 && isAppError(e) && /already exists/i.test(e.detail || "")) continue; // created concurrently
+      throw e;
+    }
   }
+  // Headers (only where the header row is empty)
+  const t = await readTables(store, sid, [REGISTRY_TABS.companies, REGISTRY_TABS.system]);
+  const data = [];
+  if (!t[REGISTRY_TABS.companies].headers.filter(Boolean).length) data.push({ range: `'${REGISTRY_TABS.companies}'!A1`, values: [REGISTRY_HEADERS] });
+  if (!t[REGISTRY_TABS.system].headers.filter(Boolean).length) data.push({ range: `'${REGISTRY_TABS.system}'!A1`, values: [["key", "value"]] });
+  if (data.length) await store.batchUpdateValues(sid, data);
 }
 
 export async function readRegistry(): Promise<{ companies: Table; system: Kv }> {
@@ -39,7 +56,7 @@ export async function readRegistry(): Promise<{ companies: Table; system: Kv }> 
   try {
     t = await readTables(getStore(), sid, [REGISTRY_TABS.companies, REGISTRY_TABS.system]);
   } catch (e) {
-    if (isAppError(e, "sheets_api")) {
+    if (isAppError(e, "sheets_api") && /parse range/i.test(e.detail || "")) {
       await ensureRegistry();
       t = await readTables(getStore(), sid, [REGISTRY_TABS.companies, REGISTRY_TABS.system]);
     } else throw e;
