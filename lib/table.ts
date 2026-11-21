@@ -123,3 +123,16 @@ export function setKv(w: Writer, kv: Kv, key: string, value: string, description
     kv.rowOf[key] = w.append(kv.table, { key, value, description });
   }
 }
+
+/** Read only the header row of a tab. */
+export async function readHeaders(store: SheetStore, sheetId: string, tab: string): Promise<string[]> {
+  const [vals] = await store.batchGet(sheetId, [`'${tab.replace(/'/g, "''")}'!A1:ZZ1`]);
+  return (vals?.[0] || []).map((h) => String(h).trim());
+}
+
+/** Append objects to a tab, placing each value under its header (columns can be in any order). */
+export async function appendObjects(store: SheetStore, sheetId: string, tab: string, objs: Record<string, string | number | undefined>[]) {
+  if (!objs.length) return;
+  const headers = await readHeaders(store, sheetId, tab);
+  await store.append(sheetId, tab, objs.map((o) => headers.map((h) => (o[h] == null ? "" : String(o[h])))));
+}

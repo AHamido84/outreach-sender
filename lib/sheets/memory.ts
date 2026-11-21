@@ -24,6 +24,8 @@ export class MemorySheetStore implements SheetStore {
   private nextId = 1;
   /** Sheet IDs the fake service account cannot open (to demo the "share" step). */
   denied = new Set<string>();
+  /** Demo: opening an unknown sheet ID creates an empty one (simulates a freshly created Google Sheet). */
+  autoCreate = false;
 
   serviceAccountEmail() {
     return "outreach-demo@demo-project.iam.gserviceaccount.com";
@@ -35,7 +37,12 @@ export class MemorySheetStore implements SheetStore {
 
   private book(sheetId: string): Book {
     if (this.denied.has(sheetId)) throw new AppError("sheet_no_access", "The caller does not have permission (demo)");
-    const b = this.books.get(sheetId);
+    let b = this.books.get(sheetId);
+    if (!b && this.autoCreate && !/noaccess/i.test(sheetId)) {
+      b = { title: "Untitled spreadsheet", tabs: [{ sheetId: this.nextId++, title: "Sheet1", rows: [] }] };
+      this.books.set(sheetId, b);
+    }
+    if (/noaccess/i.test(sheetId)) throw new AppError("sheet_no_access", "The caller does not have permission (demo)");
     if (!b) throw new AppError("sheet_not_found", "Requested entity was not found (demo)");
     return b;
   }

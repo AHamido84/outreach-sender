@@ -138,3 +138,25 @@ export function formatInTz(d: Date | null, tz: string, withTime = true): string 
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
   }).format(d);
 }
+
+/** Convert a wall-clock time in a timezone ("2026-11-22T10:30") to a UTC Date. */
+export function zonedToUtc(local: string, tz: string): Date | null {
+  const m = String(local || "").match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number);
+  const target = Date.UTC(y, mo - 1, d, h, mi);
+  let guess = target;
+  for (let i = 0; i < 3; i++) {
+    const p = zonedParts(new Date(guess), tz);
+    const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+    guess += target - asUtc;
+  }
+  return new Date(guess);
+}
+
+/** UTC Date → "YYYY-MM-DDTHH:mm" wall-clock in the timezone (for datetime-local inputs). */
+export function utcToZonedInput(d: Date, tz: string): string {
+  const p = zonedParts(d, tz);
+  const z = (n: number) => String(n).padStart(2, "0");
+  return `${p.year}-${z(p.month)}-${z(p.day)}T${z(p.hour)}:${z(p.minute)}`;
+}

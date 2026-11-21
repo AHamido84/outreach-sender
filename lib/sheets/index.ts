@@ -1,5 +1,6 @@
 // Store factory with a ~20s read cache (per server instance). Any write invalidates that spreadsheet's cache.
 import { isDemo } from "../env";
+import { getDemoStore } from "../demo/seed";
 import { GoogleSheetStore } from "./google";
 import type { SheetMeta, SheetStore, ValueRange } from "./types";
 
@@ -71,9 +72,6 @@ const g = globalThis as unknown as { __sheetStore?: CachedStore };
 export function getStore(): CachedStore {
   if (!g.__sheetStore) {
     if (isDemo()) {
-      // Lazy import keeps demo seed data out of the real code path.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getDemoStore } = require("../demo/seed") as typeof import("../demo/seed");
       g.__sheetStore = new CachedStore(getDemoStore());
     } else {
       g.__sheetStore = new CachedStore(new GoogleSheetStore());
