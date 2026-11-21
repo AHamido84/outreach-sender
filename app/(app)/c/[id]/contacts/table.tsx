@@ -1,5 +1,5 @@
 "use client";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pencil, RefreshCw, Tag, Ban, Trash2, CheckCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pencil, RefreshCw, RotateCcw, Tag, Ban, Trash2, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -77,6 +77,11 @@ export function ContactsTable(props: {
           <span className="px-2 text-sm font-medium">{ar.contacts.bulk.selected(sel.size)}</span>
           <Button size="sm" variant="outline" disabled={pending} onClick={() => setTagsOpen(true)}><Tag />{ar.contacts.bulk.setTags}</Button>
           <Button size="sm" variant="outline" disabled={pending} onClick={() => bulk("ready")}><CheckCheck />{ar.contacts.bulk.markReady}</Button>
+          <Confirm
+            trigger={<Button size="sm" variant="outline" disabled={pending}><RotateCcw />{ar.contacts.bulk.restart}</Button>}
+            description={ar.contacts.bulk.restartConfirm(sel.size)}
+            onConfirm={() => bulk("restart")}
+          />
           <Confirm
             trigger={<Button size="sm" variant="outline" disabled={pending}><Ban />{ar.contacts.bulk.dnc}</Button>}
             description={ar.contacts.bulk.dncConfirm(sel.size)}

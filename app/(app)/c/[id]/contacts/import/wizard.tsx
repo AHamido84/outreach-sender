@@ -30,7 +30,7 @@ function fromMatrix(m: unknown[][]): Parsed {
 
 const TONE: Record<string, string> = { valid: "Done", invalid: "Invalid", duplicate: "Duplicate", dnc: "Unsubscribed" };
 
-export function ImportWizard({ id }: { id: string }) {
+export function ImportWizard({ id, defaults }: { id: string; defaults: { allowSameDomain: boolean; allowResend: boolean } }) {
   const [step, setStep] = useState(1);
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [paste, setPaste] = useState("");
@@ -40,6 +40,8 @@ export function ImportWizard({ id }: { id: string }) {
   const [preview, setPreview] = useState<{ counts: Record<string, number>; checks: ImportCheck[] } | null>(null);
   const [initialStatus, setInitialStatus] = useState<"Ready" | "New">("Ready");
   const [includeBad, setIncludeBad] = useState(false);
+  const [allowSameDomain, setAllowSameDomain] = useState(defaults.allowSameDomain);
+  const [allowResend, setAllowResend] = useState(defaults.allowResend);
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [done, setDone] = useState<null | { added: number; mondayCreated: number }>(null);
   const [pending, start] = useTransition();
@@ -97,10 +99,10 @@ export function ImportWizard({ id }: { id: string }) {
 
   const hasEmail = Object.values(mapping).includes("Email");
 
-  const doPreview = () =>
+  const doPreview = (opts = { allowSameDomain, allowResend }) =>
     start(async () => {
       setError(null);
-      const r = await previewImport(id, mappedRows);
+      const r = await previewImport(id, mappedRows, opts);
       if (!r.ok) return setError(r.error);
       setPreview(r.data);
       setStep(3);
@@ -109,7 +111,7 @@ export function ImportWizard({ id }: { id: string }) {
   const doAppend = () =>
     start(async () => {
       setError(null);
-      const r = await appendImport(id, { rows: mappedRows, source, mapping: mapping as Record<string, string>, initialStatus, includeBad });
+      const r = await appendImport(id, { rows: mappedRows, source, mapping: mapping as Record<string, string>, initialStatus, includeBad, allowSameDomain, allowResend });
       if (!r.ok) return setError(r.error);
       setDone({ added: r.data.added, mondayCreated: r.data.mondayCreated });
       setStep(4);
@@ -180,7 +182,7 @@ export function ImportWizard({ id }: { id: string }) {
           {!hasEmail && <p className="mt-3 text-sm text-rose-600">{ar.import.needEmail}</p>}
           <div className="mt-4 flex gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>{ar.common.back}</Button>
-            <Button disabled={!hasEmail || pending} onClick={doPreview}>{pending && <Loader2 className="animate-spin" />}{ar.common.next}</Button>
+            <Button disabled={!hasEmail || pending} onClick={() => doPreview()}>{pending && <Loader2 className="animate-spin" />}{ar.common.next}</Button>
           </div>
         </Section>
       )}
@@ -214,6 +216,17 @@ export function ImportWizard({ id }: { id: string }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="mt-4 space-y-2 rounded-lg bg-muted/50 p-3 text-sm">
+              <p className="text-xs font-semibold text-muted-foreground">{ar.import.options}</p>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={allowSameDomain} disabled={pending} onCheckedChange={(v) => { setAllowSameDomain(!!v); doPreview({ allowSameDomain: !!v, allowResend }); }} />
+                {ar.import.allowSameDomain}
+              </label>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={allowResend} disabled={pending} onCheckedChange={(v) => { setAllowResend(!!v); doPreview({ allowSameDomain, allowResend: !!v }); }} />
+                {ar.import.allowResend}
+              </label>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
               <label className="flex items-center gap-2">

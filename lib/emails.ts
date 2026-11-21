@@ -100,15 +100,26 @@ export function isBlocked(email: string, dnc: DncSet): boolean {
 export type ImportRowStatus = "valid" | "invalid" | "duplicate" | "dnc";
 export type ImportCheck = { status: ImportRowStatus; email: string; reason?: string };
 
+export type DedupOptions = {
+  /** Allow several people at the same company domain (only the exact same email is a duplicate). */
+  allowSameDomain?: boolean;
+  /** Allow importing people who already exist in the sheet (emailed before). Duplicates inside the file still count. */
+  allowResend?: boolean;
+};
+
 export function classifyImport(
   rows: { email: string; website?: string }[],
   existing: { email: string; website?: string }[],
   dnc: DncSet,
+  opts: DedupOptions = {},
 ): ImportCheck[] {
   const seenEmails = new Set<string>();
   const seenDomains = new Set<string>();
+  const existingEmails = new Set<string>();
   for (const e of existing) {
     const c = cleanEmail(e.email, e.website);
+    if (c.email) existingEmails.add(c.email);
+    if (opts.allowResend) continue;
     if (c.email) seenEmails.add(c.email);
     const d = companyDomain(c.email, e.website);
     if (d) seenDomains.add(d);
@@ -116,12 +127,13 @@ export function classifyImport(
   return rows.map((r) => {
     const c = cleanEmail(r.email, r.website);
     if (!c.valid) return { status: "invalid", email: c.email, reason: "invalid_email" };
+    // Do Not Contact (bounces, unsubscribes, manual) is never overridden.
     if (isBlocked(c.email, dnc)) return { status: "dnc", email: c.email, reason: "dnc" };
     if (seenEmails.has(c.email)) return { status: "duplicate", email: c.email, reason: "same_email" };
     const d = companyDomain(c.email, r.website);
-    if (d && seenDomains.has(d)) return { status: "duplicate", email: c.email, reason: "same_domain" };
+    if (!opts.allowSameDomain && d && seenDomains.has(d)) return { status: "duplicate", email: c.email, reason: "same_domain" };
     seenEmails.add(c.email);
     if (d) seenDomains.add(d);
-    return { status: "valid", email: c.email };
+    return existingEmails.has(c.email) ? { status: "valid", email: c.email, reason: "resend" } : { status: "valid", email: c.email };
   });
 }

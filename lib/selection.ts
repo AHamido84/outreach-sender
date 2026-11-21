@@ -182,5 +182,13 @@ export function selectContacts(input: SelectInput): { picks: Pick[]; skipped: Sk
   }
   followups.sort((a, b) => a.due - b.due);
   const ordered: Pick[] = [...followups.map(({ due: _due, ...p }) => p), ...firsts];
-  return { picks: ordered.slice(0, Math.max(0, max)), skipped };
+  // The same address can appear in several rows (re-imported with "Allow Resend"): one email per address per run.
+  const seen = new Set<string>();
+  const unique = ordered.filter((p) => {
+    const e = get(p.contact, "Email").trim().toLowerCase();
+    if (seen.has(e)) return false;
+    seen.add(e);
+    return true;
+  });
+  return { picks: unique.slice(0, Math.max(0, max)), skipped };
 }

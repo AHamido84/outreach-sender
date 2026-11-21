@@ -61,3 +61,20 @@ describe("import dedup", () => {
     expect(res[3].reason).toBe("same_domain");
   });
 });
+
+describe("import dedup options", () => {
+  const rows = [{ email: "sales@acme.com" }, { email: "ceo@acme.com" }, { email: "old@existing.com" }, { email: "x@blocked.com" }, { email: "sales@acme.com" }];
+  const existing = [{ email: "old@existing.com" }];
+  const dnc = buildDnc(["blocked.com"]);
+  it("default: same domain and existing contacts are duplicates", () => {
+    expect(classifyImport(rows, existing, dnc).map((r) => r.status)).toEqual(["valid", "duplicate", "duplicate", "dnc", "duplicate"]);
+  });
+  it("allowSameDomain: several people per company, same email still duplicate", () => {
+    expect(classifyImport(rows, existing, dnc, { allowSameDomain: true }).map((r) => r.status)).toEqual(["valid", "valid", "duplicate", "dnc", "duplicate"]);
+  });
+  it("allowResend: people emailed before can be imported again; DNC is never overridden", () => {
+    const r = classifyImport(rows, existing, dnc, { allowResend: true, allowSameDomain: true });
+    expect(r.map((x) => x.status)).toEqual(["valid", "valid", "valid", "dnc", "duplicate"]);
+    expect(r[2].reason).toBe("resend");
+  });
+});

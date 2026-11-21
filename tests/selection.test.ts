@@ -101,3 +101,12 @@ describe("send window, timezone and pacing", () => {
     expect(at("2026-11-22T12:00:00Z", 0)).toBe(0); // outside window
   });
 });
+
+describe("same address in several rows", () => {
+  it("sends at most one email per address per run", () => {
+    const a = C({ ID: "D1", Email: "same@x.com" });
+    const b = C({ ID: "D2", Email: "Same@x.com" });
+    const { picks } = selectContacts({ contacts: [a, b], templates, dnc: buildDnc([]), now, max: 5, mode: "manual" });
+    expect(picks.map((p) => p.contact.ID)).toEqual(["D1"]);
+  });
+});

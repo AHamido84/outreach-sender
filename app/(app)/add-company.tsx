@@ -46,7 +46,11 @@ export function AddCompany({ serviceAccount }: { serviceAccount: string }) {
       setPhase("init");
       const r = await addCompany({ name, url, color });
       setPhase("");
-      if (!r.ok) return setError(r.error);
+      if (!r.ok) {
+        // Lost/insufficient access: go back to the share step with the service account email.
+        if (r.error.code === "sheet_no_access") return setAccess({ ok: false, code: "sheet_read_only" });
+        return setError(r.error);
+      }
       setDone({ id: r.data.id, tabs: r.data.report.createdTabs.length });
       router.refresh();
     });
@@ -103,8 +107,8 @@ export function AddCompany({ serviceAccount }: { serviceAccount: string }) {
 
             {access && !access.ok && (
               <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
-                <p className="flex items-center gap-1.5 font-medium text-amber-900">
-                  <ShieldAlert className="size-4" /> {ar.companies.shareWith}
+                <p className="flex items-start gap-1.5 font-medium text-amber-900">
+                  <ShieldAlert className="mt-0.5 size-4 shrink-0" /> {access.code === "sheet_read_only" ? ar.companies.readOnly : ar.companies.shareWith}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="ltr rounded bg-white px-2 py-1 text-xs">{serviceAccount}</code>
