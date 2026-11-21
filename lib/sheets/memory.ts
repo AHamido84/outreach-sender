@@ -102,6 +102,7 @@ export class MemorySheetStore implements SheetStore {
 
   async batchUpdate(sheetId: string, requests: object[]): Promise<void> {
     const b = this.book(sheetId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const req of requests as Record<string, any>[]) {
       if (req.addSheet) {
         const p = req.addSheet.properties || {};

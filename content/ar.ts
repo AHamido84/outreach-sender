@@ -1,0 +1,245 @@
+// All UI copy (Arabic). Keys are stable; sheet values stay English.
+
+export const ar = {
+  app: { name: "Outreach Sender", tagline: "إرسال إيميلات التواصل لعدة شركات — وGoogle Sheets هو قاعدة البيانات" },
+  common: {
+    save: "حفظ", saved: "تم الحفظ", cancel: "إلغاء", close: "إغلاق", confirm: "تأكيد", delete: "حذف", edit: "تعديل", add: "إضافة",
+    loading: "جارٍ التحميل…", search: "بحث…", all: "الكل", yes: "نعم", no: "لا", on: "تشغيل", off: "إيقاف", back: "رجوع",
+    next: "التالي", previous: "السابق", copy: "نسخ", copied: "تم النسخ", retry: "إعادة المحاولة", open: "فتح", details: "التفاصيل التقنية",
+    empty: "لا توجد بيانات بعد", none: "—", test: "اختبار", refresh: "تحديث", apply: "تطبيق", reset: "مسح", optional: "اختياري",
+    secretSaved: "محفوظ ✓", secretNotSet: "غير محفوظ", secretPlaceholder: "اكتب قيمة جديدة لتغييرها", page: "صفحة", of: "من",
+    rows: "صف", today: "اليوم", demo: "وضع تجريبي", demoHint: "بيانات وهمية في الذاكرة — لا يتم إرسال إيميلات حقيقية",
+    logout: "خروج", openSheet: "فتح الشيت", working: "جارٍ التنفيذ…", areYouSure: "هل أنت متأكد؟",
+  },
+  login: {
+    title: "تسجيل الدخول", password: "كلمة المرور", submit: "دخول", wrong: "كلمة المرور غير صحيحة", hint: "كلمة المرور هي قيمة APP_PASSWORD",
+    demoHint: "في الوضع التجريبي كلمة المرور: demo",
+  },
+  nav: {
+    companies: "الشركات", dashboard: "لوحة التحكم", contacts: "جهات الاتصال", templates: "القوالب", send: "الإرسال",
+    settings: "الإعدادات", activity: "السجل",
+  },
+  companies: {
+    title: "الشركات", add: "إضافة شركة", empty: "لا توجد شركات بعد. أضف أول شركة بلصق رابط الشيت.",
+    sentToday: "أُرسل اليوم", lastRun: "آخر تشغيل", auto: "إرسال تلقائي", inactive: "غير نشطة", warnings: "تنبيهات",
+    addTitle: "إضافة شركة جديدة", name: "اسم الشركة", url: "رابط Google Sheet", urlHint: "أنشئ شيت فارغ جديد، والصق رابطه هنا",
+    testAccess: "فحص الوصول", shareWith: "شارك الشيت مع هذا الإيميل بصلاحية Editor ثم اضغط «فحص الوصول» مرة أخرى:",
+    accessOk: "تم الوصول للشيت ✓", initialize: "تجهيز الشيت", initializing: "جارٍ إنشاء التبويبات والأعمدة…",
+    done: "تمت الإضافة والتجهيز ✓", openCompany: "فتح الشركة", step1: "البيانات", step2: "الوصول", step3: "التجهيز",
+    color: "اللون", invalidUrl: "الرابط غير صحيح — انسخ رابط الشيت من المتصفح", exists: "هذه الشركة مضافة بالفعل",
+  },
+  status: {
+    New: "جديد", Ready: "جاهز", Sent: "أُرسل", "Follow-up": "متابعة", Replied: "ردّ", Bounced: "مرتد", Unsubscribed: "ألغى الاشتراك",
+    Completed: "اكتمل", Invalid: "غير صالح", Duplicate: "مكرر",
+  } as Record<string, string>,
+  result: { Sent: "أُرسل", Failed: "فشل", Preview: "معاينة", Skipped: "تم التخطي" } as Record<string, string>,
+  runType: { manual: "يدوي", scheduled: "مجدول", auto: "تلقائي" } as Record<string, string>,
+  scheduleStatus: { Pending: "منتظر", Running: "قيد التنفيذ", Done: "تم", Failed: "فشل", Cancelled: "أُلغي" } as Record<string, string>,
+  dashboard: {
+    kpis: {
+      total: "إجمالي جهات الاتصال", ready: "جاهز للإرسال", sentToday: "أُرسل اليوم", week: "أُرسل هذا الأسبوع", replies: "الردود",
+      bounces: "المرتدة", bounceRate: "نسبة الارتداد", monday: "monday متزامن / فشل",
+    },
+    chart: "الإرسال يوميًا (آخر 14 يوم)", funnel: "مسار التحويل", funnelSent: "أُرسل لهم", funnelReplied: "ردّوا",
+    funnelFollowups: "وصلتهم متابعة", replyRate: "نسبة الرد", nextRuns: "التشغيلات القادمة", noRuns: "لا توجد تشغيلات مجدولة",
+    activity: "آخر النشاط", warnings: "تنبيهات", noWarnings: "كل شيء يعمل بشكل جيد ✓", checkInbox: "فحص الوارد الآن",
+    inboxResult: (r: { replies: number; bounces: number; unsubscribes: number }) =>
+      `ردود: ${r.replies} · مرتد: ${r.bounces} · إلغاء اشتراك: ${r.unsubscribes}`,
+  },
+  warnings: {
+    sender_not_configured: "إعدادات الإيميل المرسل غير مكتملة",
+    smtp_not_tested: "لم يتم اختبار SMTP بنجاح بعد — اختبره من الإعدادات",
+    imap_not_configured: "IMAP غير مُعدّ — لن يتم اكتشاف الردود والارتدادات",
+    monday_failing: (n: string) => `${n} جهة اتصال فشل تزامنها مع monday`,
+    bounce_high: (rate: string, max: string) => `نسبة الارتداد ${rate}% أعلى من الحد ${max}%`,
+    auto_off: "الإرسال التلقائي متوقف",
+    auto_stopped: (reason: string) => `تم إيقاف الإرسال التلقائي تلقائيًا: ${reason}`,
+    scheduler_stale: "لم يتم استدعاء المجدول (cron) منذ أكثر من 30 دقيقة",
+    scheduler_never: "لم يتم استدعاء المجدول (cron) أبدًا",
+    no_template_AR: "لا يوجد قالب أول رسالة (Step 0) مفعّل بالعربي",
+    no_template_EN: "لا يوجد قالب أول رسالة (Step 0) مفعّل بالإنجليزي",
+    sheet_error: "تعذر قراءة الشيت",
+  } as Record<string, string | ((...a: string[]) => string)>,
+  autoOffReason: {
+    bounce_rate: "نسبة ارتداد عالية", smtp_auth: "فشل تسجيل الدخول SMTP 3 مرات متتالية", empty_variable: "متغير فارغ في قالب",
+  } as Record<string, string>,
+  auto: {
+    title: "الإرسال التلقائي", on: "يعمل", off: "متوقف",
+    state: {
+      running: "يعمل", paused: "متوقف مؤقتًا", outside_window: "خارج نافذة الإرسال", daily_limit: "تم الوصول للحد اليومي",
+      bounce_guard: "أوقفه حارس الارتداد", sender_not_configured: "المرسل غير مُعدّ", stopped: "توقف تلقائيًا", blocked: "غير جاهز للتشغيل",
+    } as Record<string, string>,
+    nextRun: "التشغيل القادم", progress: "تقدم اليوم", lastRun: "آخر تشغيل", forecast: "التوقع",
+    forecastText: (ready: number, days: number) => (ready ? `${ready} جهة جاهزة ستُراسل خلال ~${days} يوم بهذا المعدل` : "لا توجد جهات جاهزة"),
+    pace: (min: string) => `إيميل كل ~${min} دقيقة`, pause: "إيقاف مؤقت", resume: "تشغيل", runNow: "تشغيل الآن",
+    runNowHint: "دفعة واحدة الآن مع احترام الحدود", viewLog: "عرض في السجل", cannotStart: "لا يمكن تشغيل الإرسال التلقائي:",
+    started: "تم تشغيل الإرسال التلقائي", paused: "تم الإيقاف المؤقت",
+    scheduler: "صحة المجدول", lastCron: "آخر استدعاء", cronOk: "يعمل", cronStale: "متأخر", cronHelp: "كيف أصلحه؟",
+    cronHelpText:
+      "الإرسال التلقائي يحتاج استدعاء /api/cron كل 10 دقائق. أضف الـ secrets باسم CRON_URL و CRON_SECRET في GitHub (Settings ← Secrets and variables ← Actions) ليعمل ملف .github/workflows/cron.yml، أو استخدم أي خدمة cron خارجية تستدعي الرابط. راجع README.",
+  },
+  stop: {
+    sender_not_configured: "إعدادات المرسل غير مكتملة", daily_limit: "تم الوصول للحد اليومي", outside_window: "خارج نافذة الإرسال",
+    not_due_yet: "ليس موعد الإرسال التالي بعد (توزيع الحد اليومي)", locked: "يوجد تشغيل آخر قيد التنفيذ لهذه الشركة",
+    auto_off: "الإرسال التلقائي متوقف", auto_blocked: "الإرسال التلقائي غير جاهز", smtp_auth: "توقف بسبب خطأ في تسجيل الدخول SMTP",
+    empty_variable: "توقف بسبب متغير فارغ", deadline: "انتهى وقت التشغيل — سيكمل في المرة القادمة", nothing_to_send: "لا توجد جهات مؤهلة للإرسال",
+    bounce_guard: "حارس الارتداد",
+  } as Record<string, string>,
+  skip: {
+    status_replied: "ردّ بالفعل", status_bounced: "مرتد", status_unsubscribed: "ألغى الاشتراك", status_completed: "اكتملت السلسلة",
+    status_invalid: "غير صالح", status_duplicate: "مكرر", invalid_email: "إيميل غير صالح", dnc: "في قائمة عدم التواصل",
+    no_next_step: "لا توجد خطوة تالية", not_due: "موعد المتابعة لم يحن", no_template: "لا يوجد قالب مفعّل لهذه الخطوة/اللغة",
+    not_ready: "الحالة «جديد» — اجعلها «جاهز» للإرسال التلقائي", unknown_status: "حالة غير معروفة", missing_vars: "متغيرات فارغة",
+  } as Record<string, string>,
+  contacts: {
+    title: "جهات الاتصال", import: "استيراد", export: "تصدير CSV", empty: "لا توجد جهات اتصال بعد — ابدأ بالاستيراد",
+    filters: { status: "الحالة", tags: "الوسوم", language: "اللغة", source: "المصدر", monday: "monday" },
+    mondayStatus: { Synced: "متزامن", Failed: "فشل", none: "—" } as Record<string, string>,
+    bulk: {
+      selected: (n: number) => `${n} محدد`, setTags: "تعيين وسوم", markReady: "اجعلها جاهزة", dnc: "نقل لعدم التواصل",
+      retryMonday: "إعادة monday", delete: "حذف", tagsPrompt: "الوسوم (مفصولة بفاصلة)", deleteConfirm: (n: number) => `سيتم حذف ${n} صف من الشيت نهائيًا.`,
+      dncConfirm: (n: number) => `سيتم إضافة ${n} إيميل لقائمة عدم التواصل وتغيير حالتهم.`, done: "تم التنفيذ ✓",
+    },
+    editTitle: "تعديل جهة اتصال", saved: "تم حفظ التعديل ✓", showing: (a: number, b: number, n: number) => `${a}–${b} من ${n}`,
+  },
+  import: {
+    title: "استيراد جهات اتصال", step1: "الملف", step2: "ربط الأعمدة", step3: "المعاينة", step4: "الإضافة",
+    upload: "ارفع ملف CSV أو Excel", paste: "أو الصق البيانات هنا (من Excel أو Google Sheets)", parse: "قراءة البيانات",
+    source: "المصدر (مثال: LinkedIn، معرض 2026)", sourceHint: "نحفظ ربط الأعمدة لكل مصدر لاستخدامه في المرة القادمة",
+    mapTo: "يُربط مع", ignore: "تجاهل", rememberedMapping: "تم تطبيق آخر ربط محفوظ لهذا المصدر", needEmail: "اربط عمود الإيميل أولًا",
+    valid: "صالح", invalid: "إيميل غير صالح", duplicate: "مكرر", dnc: "في عدم التواصل", initialStatus: "الحالة الأولية",
+    includeBad: "أضف غير الصالح والمكرر أيضًا (بحالة Invalid/Duplicate)", appendBtn: (n: number) => `إضافة ${n} جهة للشيت`,
+    done: (n: number) => `تمت إضافة ${n} جهة ✓`, rowsRead: (n: number) => `تمت قراءة ${n} صف`, sample: "أمثلة",
+    reasons: { same_email: "نفس الإيميل", same_domain: "نفس دومين الشركة", invalid_email: "إيميل غير صالح", dnc: "عدم تواصل" } as Record<string, string>,
+    tooMany: "الحد الأقصى 5000 صف في المرة الواحدة",
+  },
+  templates: {
+    title: "القوالب", sequence: "السلسلة", step0: "أول رسالة", followup: (n: number) => `متابعة ${n}`, addStep: "إضافة متابعة",
+    addVersion: "إضافة نسخة A/B", language: "اللغة", delayDays: "بعد كم يوم من الرسالة السابقة", subject: "العنوان", body: "النص",
+    followupSubject: "المتابعات تُرسل في نفس المحادثة بعنوان «Re: عنوان أول رسالة»", version: "النسخة", active: "مفعّل",
+    name: "اسم القالب", variables: "المتغيرات (اضغط لإضافتها)", preview: "معاينة حيّة", previewWith: "معاينة مع جهة اتصال",
+    missingVars: "متغيرات بدون قيمة — لن يتم الإرسال لهذه الجهة:", noMissing: "كل المتغيرات لها قيم ✓", sendTest: "إرسال تجربة لي",
+    testSent: (to: string) => `تم إرسال رسالة تجربة إلى ${to}`, saved: "تم حفظ القالب ✓", deleteConfirm: "سيتم حذف هذا القالب من الشيت.",
+    new: "قالب جديد", empty: "لا توجد قوالب لهذه اللغة", unsaved: "تغييرات غير محفوظة",
+  },
+  send: {
+    title: "الإرسال", manual: "إرسال يدوي", schedule: "جدولة", auto: "الإرسال التلقائي",
+    mode: { count: "عدد", filter: "فلتر", select: "اختيار جهات" } as Record<string, string>,
+    count: "العدد", tags: "الوسوم (مفصولة بفاصلة)", language: "اللغة", ids: "أرقام الجهات (ID مفصولة بفاصلة)",
+    preview: "معاينة", previewTitle: "من سيستلم وأي قالب", previewEmpty: "لا توجد جهات مؤهلة الآن",
+    sendBtn: (n: number) => `إرسال ${n} إيميل`, confirmTitle: "تأكيد الإرسال", confirmText: (n: number) => `سيتم إرسال ${n} إيميل حقيقي الآن. متابعة؟`,
+    outsideWindow: "أنت الآن خارج نافذة الإرسال. يمكنك الإرسال على أي حال (الحد اليومي وقائمة عدم التواصل يُحترمان دائمًا).",
+    overrideWindow: "أرسل خارج النافذة", progress: "التقدم", stopBtn: "إيقاف", stopped: "تم الإيقاف", finished: "انتهى الإرسال",
+    waiting: (s: number) => `انتظار ${s} ث…`, limitInfo: (sent: number, limit: number) => `أُرسل اليوم ${sent} من ${limit}`,
+    mondayItem: "عنصر monday", contact: "الجهة", template: "القالب", step: "الخطوة", result: "النتيجة",
+    schedAdd: "إضافة تشغيل مجدول", runAt: "الموعد (بتوقيت الشركة)", filter: "الفلتر", upcoming: "التشغيلات", cancelRun: "إلغاء",
+    schedAdded: "تمت الجدولة ✓", schedCancelled: "تم الإلغاء", tz: (tz: string) => `المنطقة الزمنية: ${tz}`,
+    schedHint: "التشغيل المجدول يُنفذ في موعده حتى خارج نافذة الإرسال، مع احترام الحد اليومي.",
+  },
+  settings: {
+    title: "الإعدادات",
+    tabs: { company: "الشركة", sender: "الإيميل المرسل", monday: "monday", dnc: "عدم التواصل", advanced: "متقدم" } as Record<string, string>,
+    testSmtp: "اختبار SMTP", testImap: "اختبار IMAP", sendTestEmail: "إرسال إيميل تجربة", smtpOk: "SMTP يعمل ✓", imapOk: "IMAP يعمل ✓",
+    sections: { identity: "هوية المرسل", smtp: "SMTP (الإرسال)", imap: "IMAP (قراءة الردود)", limits: "الحدود والتوقيت", safety: "الأمان" },
+    deliverability: "فحص قابلية التسليم", dkimSelector: "DKIM selector", check: "فحص", gmailNote: "ملاحظة Gmail / Google Workspace",
+    gmailSteps: [
+      "فعّل التحقق بخطوتين (2-Step Verification) في حساب Google.",
+      "افتح myaccount.google.com/apppasswords وأنشئ App Password باسم Outreach.",
+      "انسخ الكود المكون من 16 حرف وضعه في SMTP Password (بدون مسافات).",
+      "SMTP: smtp.gmail.com منفذ 465 Secure = yes · IMAP: imap.gmail.com منفذ 993.",
+    ],
+    providers: "إعدادات جاهزة", mondayToken: "API Token", boardId: "Board ID أو رابط البورد", loadBoard: "تحميل البورد",
+    groups: "الجروب", mapping: "ربط الحقول بالأعمدة", createMissing: "إنشاء الأعمدة الناقصة", testMonday: "اختبار (إنشاء وحذف عنصر)",
+    mondayOk: "monday يعمل ✓ — تم إنشاء وحذف عنصر تجربة", boardLoaded: (n: string) => `تم تحميل البورد: ${n}`, notMapped: "غير مربوط",
+    createOn: { "first send": "عند أول إرسال", import: "عند الاستيراد", never: "أبدًا" } as Record<string, string>,
+    updateOnReply: "تحديث الحالة عند الرد", dncAdd: "إضافة إيميل أو دومين", dncHint: "إيميل كامل (a@b.com) أو دومين (b.com)",
+    reason: "السبب", repair: "إصلاح الشيت", repairHint: "ينشئ أي تبويبات أو أعمدة ناقصة بدون المساس بالبيانات", repaired: "تم الإصلاح ✓",
+    remove: "إزالة الشركة من التطبيق", removeHint: "يحذف الشركة من الـ Registry فقط — الشيت نفسه لا يُحذف",
+    removeConfirm: "سيتم إزالة الشركة من قائمة الشركات. الشيت لن يُحذف.", removed: "تمت الإزالة",
+    serviceAccount: "إيميل الـ Service Account", sheet: "الشيت", fieldsSaved: "تم الحفظ في الشيت ✓",
+    autoOnRequiresTest: "لا يمكن تشغيل الإرسال التلقائي قبل نجاح اختبار SMTP",
+  },
+  dns: {
+    spf: "SPF", dkim: "DKIM", dmarc: "DMARC", mx: "MX",
+    fix: {
+      spf: "أضف سجل TXT للدومين مثل: v=spf1 include:_spf.google.com ~all",
+      spfMulti: "يوجد أكثر من سجل SPF — ادمجهم في سجل واحد",
+      dkim: "فعّل DKIM عند مزود الإيميل وأضف سجل TXT بالـ selector الصحيح (Google: google)",
+      dmarc: "أضف TXT على _dmarc بالقيمة: v=DMARC1; p=none; rua=mailto:you@domain",
+      dmarcNone: "DMARC موجود لكن p=none — جيد للبداية، ويُفضل quarantine لاحقًا",
+      mx: "لا يوجد سجل MX — لن تستقبل الردود على هذا الدومين",
+      ok: "سليم",
+    },
+  },
+  activity: {
+    title: "السجل", sendLog: "سجل الإرسال", activity: "النشاط", time: "الوقت", action: "الإجراء", details: "التفاصيل",
+    run: "التشغيل", type: "النوع", error: "الخطأ", filterRun: "رقم التشغيل",
+  },
+  fields: {
+    "Company Name": "اسم الشركة", Website: "الموقع", Phone: "الهاتف", WhatsApp: "واتساب", Address: "العنوان",
+    "Short Description": "وصف قصير", "Profile Link": "رابط البروفايل", "Booking Link": "رابط الحجز", "Logo URL": "رابط اللوجو",
+    Signature: "التوقيع", "From Name": "اسم المرسل", "From Email": "إيميل المرسل", "Reply-To": "إيميل الرد (Reply-To)",
+    "SMTP Host": "SMTP Host", "SMTP Port": "SMTP Port", "SMTP Secure": "SSL (Secure)", "SMTP User": "SMTP User", "SMTP Password": "SMTP Password",
+    "IMAP Host": "IMAP Host", "IMAP Port": "IMAP Port", "IMAP User": "IMAP User", "IMAP Password": "IMAP Password",
+    "Daily Limit": "الحد اليومي", "Emails Per Run": "إيميلات لكل تشغيل", "Delay Between Emails": "ثواني بين الإيميلات",
+    "Send Days": "أيام الإرسال", "Send Start Hour": "من الساعة", "Send End Hour": "إلى الساعة", Timezone: "المنطقة الزمنية",
+    "Auto Sending": "الإرسال التلقائي", "Max Bounce Rate": "أقصى نسبة ارتداد %", "Unsubscribe Line": "سطر إلغاء الاشتراك",
+    "Group ID": "الجروب", "Create Item On": "إنشاء العنصر", "Update Status On Reply": "تحديث الحالة عند الرد",
+    ID: "ID", "Added At": "أضيف في", Source: "المصدر", Company: "الشركة", "Contact Name": "الاسم", Title: "المسمى", Email: "الإيميل",
+    Industry: "المجال", City: "المدينة", Country: "الدولة", Language: "اللغة", Tags: "الوسوم", Status: "الحالة", Step: "الخطوة",
+    Version: "النسخة", "Last Sent At": "آخر إرسال", "Next Send At": "الإرسال القادم", "monday Status": "monday", Error: "الخطأ", Notes: "ملاحظات",
+  } as Record<string, string>,
+  days: { Sat: "السبت", Sun: "الأحد", Mon: "الإثنين", Tue: "الثلاثاء", Wed: "الأربعاء", Thu: "الخميس", Fri: "الجمعة" } as Record<string, string>,
+  errors: {
+    unknown: "حدث خطأ غير متوقع",
+    sheet_no_access: "لا يمكن الوصول للشيت — شاركه مع إيميل الـ Service Account بصلاحية Editor",
+    sheet_not_found: "الشيت غير موجود — تأكد من الرابط",
+    sheet_not_initialized: "الشيت غير مجهز — اضغط «إصلاح الشيت» من الإعدادات ← متقدم",
+    sheets_api: "خطأ من Google Sheets — حاول مرة أخرى بعد قليل",
+    service_account_invalid: "قيمة GOOGLE_SERVICE_ACCOUNT_JSON غير صحيحة",
+    registry_missing: "متغير REGISTRY_SHEET_ID غير مضبوط",
+    company_not_found: "الشركة غير موجودة في الـ Registry",
+    secret_decrypt: "تعذر فك تشفير كلمة سر محفوظة — ربما تغيّر APP_SECRET. أعد إدخالها.",
+    smtp_missing: "أكمل بيانات SMTP (Host و User و Password)",
+    smtp_auth: "اسم المستخدم أو كلمة المرور خطأ. في Gmail استخدم App Password وليس كلمة سر الحساب.",
+    smtp_connect: "تعذر الاتصال بخادم SMTP — راجع الـ Host والمنفذ",
+    smtp_tls: "مشكلة في التشفير — جرّب منفذ 465 مع Secure=yes أو 587 مع Secure=no",
+    smtp_recipient: "الخادم رفض المستلم — الإيميل غير موجود أو مرفوض",
+    smtp_other: "فشل الإرسال عبر SMTP",
+    imap_missing: "أكمل بيانات IMAP (Host و User و Password)",
+    imap_auth: "تسجيل الدخول IMAP فشل — راجع اسم المستخدم وكلمة المرور (App Password)، وفعّل IMAP في إعدادات Gmail",
+    imap_connect: "تعذر الاتصال بخادم IMAP — راجع الـ Host والمنفذ",
+    imap_other: "خطأ في IMAP",
+    monday_no_token: "أدخل monday API Token أولًا",
+    monday_auth: "توكن monday غير صحيح أو منتهي",
+    monday_network: "تعذر الاتصال بـ monday",
+    monday_api: "monday رفض الطلب",
+    monday_board_not_found: "البورد غير موجود أو لا تملك صلاحية عليه",
+    locked: "يوجد إرسال آخر قيد التنفيذ لهذه الشركة — انتظر دقيقة",
+    missing_vars: "متغيرات فارغة في القالب",
+    invalid_input: "بيانات غير صحيحة",
+    auto_blocked: "الإرسال التلقائي غير جاهز",
+    invalid_url: "الرابط غير صحيح — انسخ رابط الشيت من المتصفح",
+    exists: "هذه الشركة مضافة بالفعل",
+    unauthorized: "انتهت الجلسة — سجّل الدخول مرة أخرى",
+  } as Record<string, string>,
+};
+
+export type Ar = typeof ar;
+
+export function statusLabel(s: string): string {
+  if (!s) return ar.status.New;
+  const m = s.match(/^Follow-up (\d+)$/);
+  if (m) return `${ar.status["Follow-up"]} ${m[1]}`;
+  return ar.status[s] || s;
+}
+
+export function errorText(code: string): string {
+  return ar.errors[code] || ar.stop[code] || ar.skip[code] || ar.errors.unknown;
+}
+
+export function warningText(code: string, ...args: string[]): string {
+  const w = ar.warnings[code];
+  if (typeof w === "function") return w(...args);
+  return w || code;
+}

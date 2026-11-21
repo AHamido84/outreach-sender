@@ -6,7 +6,7 @@ import { unsubscribeToken } from "./crypto";
 import { splitIds } from "./detect";
 import { buildDnc, domainOf } from "./emails";
 import { appUrl } from "./env";
-import { AppError, toErrorInfo, type ErrorInfo } from "./errors";
+import { AppError, isAppError, toErrorInfo, type ErrorInfo } from "./errors";
 import { syncContactToMonday, type MondayOutcome } from "./monday";
 import { TABS } from "./schema";
 import {
@@ -48,6 +48,8 @@ export type RunOptions = {
   deadline?: number;
   /** Wait "Delay Between Emails" between messages (off for client-driven manual batches of 1). */
   sleepBetween?: boolean;
+  /** "Run now" from the auto panel: one batch immediately (still window + limits), ignoring pacing and the on/off switch. */
+  runNow?: boolean;
   now?: Date;
 };
 
@@ -161,7 +163,9 @@ export function composeFor(ctx: Ctx, s: SenderSettings, pick: Pick) {
   const c = pick.contact;
   const base = appUrl();
   const email = get(c, "Email").trim().toLowerCase();
-  const link = base ? `${base}/u/${unsubscribeToken(ctx.sheetId, email)}` : null;
+  const token = base ? unsubscribeToken(ctx.sheetId, email) : "";
+  const link = base ? `${base}/u/${token}` : null; // human page (used in {unsubscribe})
+  const oneClick = base ? `${base}/api/unsubscribe/${token}` : null; // RFC 8058 one-click POST
   const vars = buildVars({
     company: ctx.company.values,
     sender: ctx.sender.values,
@@ -185,9 +189,9 @@ export function composeFor(ctx: Ctx, s: SenderSettings, pick: Pick) {
   if (!subject.trim() && !rendered.missing.length) rendered.missing.push("subject");
   const replyTo = s.smtp.replyTo || s.smtp.fromEmail;
   const headers: Record<string, string> = {
-    "List-Unsubscribe": [`<mailto:${replyTo}?subject=unsubscribe>`, link ? `<${link}>` : ""].filter(Boolean).join(", "),
+    "List-Unsubscribe": [`<mailto:${replyTo}?subject=unsubscribe>`, oneClick ? `<${oneClick}>` : ""].filter(Boolean).join(", "),
   };
-  if (link) headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  if (oneClick) headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   return { to: email, subject, text: rendered.text, html: rendered.html, missing: rendered.missing, inReplyTo, references, headers };
 }
 
@@ -225,7 +229,7 @@ export async function runBatchWith(ctx: Ctx, opts: RunOptions): Promise<RunOutco
 
   if (!senderReady(s)) return { ...out, stopped: "sender_not_configured" };
   if (opts.runType === "auto") {
-    if (!s.auto) return { ...out, stopped: "auto_off" };
+    if (!s.auto && !opts.runNow) return { ...out, stopped: "auto_off" };
     if (autoBlockers(ctx, s).length) return { ...out, stopped: "auto_blocked" };
   }
   const remaining = Math.max(0, s.dailyLimit - sentToday);
@@ -235,7 +239,7 @@ export async function runBatchWith(ctx: Ctx, opts: RunOptions): Promise<RunOutco
   if (!windowOk && opts.runType === "manual" && !opts.overrideWindow && !opts.dryRun) return { ...out, stopped: "outside_window" };
 
   let max = Math.min(opts.max ?? s.perRun, remaining);
-  if (opts.runType === "auto") {
+  if (opts.runType === "auto" && !opts.runNow) {
     max = Math.min(max, pacedAllowance({ now, w: s.window, dailyLimit: s.dailyLimit, sentToday, perRun: s.perRun }));
     if (max <= 0) return { ...out, stopped: "not_due_yet" };
   }
@@ -265,7 +269,7 @@ export async function runBatchWith(ctx: Ctx, opts: RunOptions): Promise<RunOutco
   try {
     await acquireLock(ctx, runId);
   } catch (e) {
-    if (e instanceof AppError && e.code === "locked") return { ...out, stopped: "locked" };
+    if (isAppError(e, "locked")) return { ...out, stopped: "locked" };
     throw e;
   }
 

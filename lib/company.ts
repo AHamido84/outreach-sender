@@ -2,7 +2,7 @@
 import type { ImapConfig, SmtpConfig } from "./adapters/types";
 import { decrypt, encrypt, isEncrypted } from "./crypto";
 import { registrySheetId } from "./env";
-import { AppError } from "./errors";
+import { AppError, isAppError } from "./errors";
 import { MONDAY_FIELDS, REGISTRY_HEADERS, REGISTRY_TABS, SECRET_KEYS, TABS } from "./schema";
 import { isYes, toTemplate, type Template } from "./selection";
 import { getStore } from "./sheets";
@@ -39,7 +39,7 @@ export async function readRegistry(): Promise<{ companies: Table; system: Kv }> 
   try {
     t = await readTables(getStore(), sid, [REGISTRY_TABS.companies, REGISTRY_TABS.system]);
   } catch (e) {
-    if (e instanceof AppError && e.code === "sheets_api") {
+    if (isAppError(e, "sheets_api")) {
       await ensureRegistry();
       t = await readTables(getStore(), sid, [REGISTRY_TABS.companies, REGISTRY_TABS.system]);
     } else throw e;
@@ -94,7 +94,7 @@ export async function loadCompany(id: string, extraTabs: string[] = []): Promise
   try {
     t = await readTables(store, id, tabs);
   } catch (e) {
-    if (e instanceof AppError && e.code === "sheets_api" && /parse range/i.test(e.detail || "")) throw new AppError("sheet_not_initialized", e.detail);
+    if (isAppError(e, "sheets_api") && /parse range/i.test(e.detail || "")) throw new AppError("sheet_not_initialized", e.detail);
     throw e;
   }
   const ctx: Ctx = {
