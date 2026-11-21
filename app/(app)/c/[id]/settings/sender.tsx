@@ -74,6 +74,18 @@ export function SenderTab({ id, values, secrets, smtpTestedAt, imapTestedAt }: {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{smtpTestedAt ? `✓ ${ar.settings.smtpOk} · ${fmtRelative(smtpTestedAt)}` : ar.warnings.smtp_not_tested as string}</p>
         </Section>
+        <Section title={ar.settings.sections.dedup}>
+          <KvForm
+            id={id}
+            tab="Sender"
+            values={values}
+            fields={[
+              { key: "Allow Same Domain", type: "yesno", hint: ar.settings.sameDomainHint, span: 2 },
+              { key: "Allow Resend", type: "yesno", hint: ar.settings.resendHint, span: 2 },
+            ]}
+          />
+          <p className="mt-3 text-xs text-muted-foreground">{ar.settings.dedupHint}</p>
+        </Section>
         <Section title={ar.settings.sections.imap}>
           <KvForm
             id={id}

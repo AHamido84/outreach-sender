@@ -161,6 +161,8 @@ export type SenderSettings = {
   auto: boolean;
   maxBounce: number;
   smtpTestedAt: string;
+  allowSameDomain: boolean;
+  allowResend: boolean;
 };
 
 export function senderSettings(ctx: Ctx): SenderSettings {
@@ -192,6 +194,8 @@ export function senderSettings(ctx: Ctx): SenderSettings {
     tz,
     auto: isYes(v["Auto Sending"]),
     maxBounce: num(v["Max Bounce Rate"], 5),
+    allowSameDomain: isYes(v["Allow Same Domain"]),
+    allowResend: isYes(v["Allow Resend"]),
     smtpTestedAt: v["SMTP Tested At"] || "",
   };
 }

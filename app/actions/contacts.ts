@@ -2,8 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { act } from "@/lib/action";
 import { requireSession } from "@/lib/auth-server";
-import { loadCompany, logActivity } from "@/lib/company";
-import { buildDnc, classifyImport, cleanEmail, isValidEmail } from "@/lib/emails";
+import { loadCompany, logActivity, senderSettings } from "@/lib/company";
+import { buildDnc, classifyImport, cleanEmail, isBlocked, isValidEmail, type DedupOptions } from "@/lib/emails";
 import { AppError } from "@/lib/errors";
 import { IMPORT_FIELDS } from "@/lib/import-map";
 import { mondayConfig, syncContactToMonday } from "@/lib/monday";
@@ -33,7 +33,7 @@ export async function updateContact(id: string, contactId: string, patch: Record
   });
 }
 
-export async function bulkAction(id: string, ids: string[], action: "tags" | "ready" | "dnc" | "monday" | "delete", arg = "") {
+export async function bulkAction(id: string, ids: string[], action: "tags" | "ready" | "restart" | "dnc" | "monday" | "delete", arg = "") {
   return act(async () => {
     await requireSession();
     if (!ids.length) return { count: 0 };
@@ -47,6 +47,17 @@ export async function bulkAction(id: string, ids: string[], action: "tags" | "re
       for (const r of rows) {
         const st = get(r, "Status") || "New";
         if (["New", "Invalid", "Duplicate", ""].includes(st) && isValidEmail(get(r, "Email"))) count += ctx.w.update(t, r, { Status: "Ready", Error: "" }).length ? 1 : 0;
+      }
+    } else if (action === "restart") {
+      // Start the sequence again from the first email. Bounced, unsubscribed and Do Not Contact are never restarted.
+      const dncSet = buildDnc(ctx.t[TABS.dnc].rows.map((r) => get(r, "Email or Domain")));
+      for (const r of rows) {
+        const st = get(r, "Status");
+        if (["Bounced", "Unsubscribed", "Invalid"].includes(st) || !isValidEmail(get(r, "Email")) || isBlocked(get(r, "Email"), dncSet)) continue;
+        const changed = ctx.w.update(t, r, {
+          Status: "Ready", Step: "", Version: "", "Next Send At": "", "Last Message ID": "", "Thread References": "", Error: "",
+        });
+        if (changed.length) count++;
       }
     } else if (action === "dnc") {
       const dnc = ctx.t[TABS.dnc];
@@ -103,13 +114,18 @@ export async function getSavedMapping(id: string, source: string) {
   });
 }
 
-export async function previewImport(id: string, rows: ImportRow[]) {
+function dedupOptions(ctx: Awaited<ReturnType<typeof loadCompany>>, opts?: DedupOptions): DedupOptions {
+  const s = senderSettings(ctx);
+  return { allowSameDomain: opts?.allowSameDomain ?? s.allowSameDomain, allowResend: opts?.allowResend ?? s.allowResend };
+}
+
+export async function previewImport(id: string, rows: ImportRow[], opts?: DedupOptions) {
   return act(async () => {
     await requireSession();
     const ctx = await loadCompany(id);
     const existing = ctx.t[TABS.contacts].rows.map((r) => ({ email: get(r, "Email"), website: get(r, "Website") }));
     const dnc = buildDnc(ctx.t[TABS.dnc].rows.map((r) => get(r, "Email or Domain")));
-    const checks = classifyImport(rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc);
+    const checks = classifyImport(rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc, dedupOptions(ctx, opts));
     const counts = { valid: 0, invalid: 0, duplicate: 0, dnc: 0 };
     checks.forEach((c) => counts[c.status]++);
     return { counts, checks };
@@ -127,7 +143,7 @@ function nextIdFactory(rows: Row[]) {
 
 export async function appendImport(
   id: string,
-  input: { rows: ImportRow[]; source: string; mapping: Record<string, string>; initialStatus: "Ready" | "New"; includeBad: boolean },
+  input: { rows: ImportRow[]; source: string; mapping: Record<string, string>; initialStatus: "Ready" | "New"; includeBad: boolean } & DedupOptions,
 ) {
   return act(async () => {
     await requireSession();
@@ -136,7 +152,7 @@ export async function appendImport(
     const t = ctx.t[TABS.contacts];
     const existing = t.rows.map((r) => ({ email: get(r, "Email"), website: get(r, "Website") }));
     const dnc = buildDnc(ctx.t[TABS.dnc].rows.map((r) => get(r, "Email or Domain")));
-    const checks = classifyImport(input.rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc);
+    const checks = classifyImport(input.rows.map((r) => ({ email: r.Email || "", website: r.Website })), existing, dnc, dedupOptions(ctx, input));
     const nextId = nextIdFactory(t.rows);
     const now = new Date().toISOString();
     const added: Row[] = [];

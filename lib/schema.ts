@@ -52,6 +52,8 @@ export const SENDER_KEYS: KvDef[] = [
   { key: "Timezone", default: "Africa/Cairo", description: "المنطقة الزمنية، مثال: Asia/Riyadh" },
   { key: "Auto Sending", default: "off", description: "on / off" },
   { key: "Max Bounce Rate", default: "5", description: "نسبة الارتداد القصوى % قبل الإيقاف التلقائي" },
+  { key: "Allow Same Domain", default: "no", description: "yes = مراسلة أكثر من شخص في نفس دومين الشركة" },
+  { key: "Allow Resend", default: "no", description: "yes = استيراد/مراسلة أشخاص تمت مراسلتهم من قبل" },
   {
     key: "Unsubscribe Line",
     default: "إذا لم تكن مهتمًا، ردّ بكلمة «لا» ولن نراسلك مرة أخرى.",
