@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { RichEditor, type RichEditorHandle } from "@/components/app/rich-editor";
 import { ar } from "@/content/ar";
 import type { Template } from "@/lib/selection";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,8 @@ export function TemplatesEditor(props: {
   const [preview, setPreview] = useState<null | { subject: string; html: string; missing: string[]; contactId: string }>(null);
   const [pending, start] = useTransition();
   const [testing, startTest] = useTransition();
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const bodyRef = useRef<RichEditorHandle>(null);
+  const [editorKey, setEditorKey] = useState(0);
   const subjRef = useRef<HTMLInputElement>(null);
   const lastFocus = useRef<"subject" | "body">("body");
 
@@ -47,6 +48,7 @@ export function TemplatesEditor(props: {
   const select = (t: TemplateDraft) => {
     setDraft({ ...t });
     setDirty(false);
+    setEditorKey((k) => k + 1); // remount the rich editor with the new body
   };
 
   const change = (patch: Partial<TemplateDraft>) => {
@@ -65,13 +67,14 @@ export function TemplatesEditor(props: {
 
   const insertVar = (v: string) => {
     const token = `{${v}}`;
-    const el = lastFocus.current === "subject" ? subjRef.current : bodyRef.current;
-    const key = lastFocus.current === "subject" ? "subject" : "body";
-    if (key === "subject" && draft.step > 0) return;
-    const cur = draft[key];
+    if (lastFocus.current === "body" || draft.step > 0) {
+      bodyRef.current?.insertText(token);
+      return;
+    }
+    const el = subjRef.current;
+    const cur = draft.subject;
     const pos = el?.selectionStart ?? cur.length;
-    const next = cur.slice(0, pos) + token + cur.slice(el?.selectionEnd ?? pos);
-    change({ [key]: next });
+    change({ subject: cur.slice(0, pos) + token + cur.slice(el?.selectionEnd ?? pos) });
     requestAnimationFrame(() => {
       el?.focus();
       el?.setSelectionRange(pos + token.length, pos + token.length);
@@ -204,8 +207,15 @@ export function TemplatesEditor(props: {
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="tb">{ar.templates.body}</Label>
-            <Textarea id="tb" ref={bodyRef} dir={isRtl ? "rtl" : "ltr"} rows={12} className="leading-relaxed" value={draft.body} onFocus={() => (lastFocus.current = "body")} onChange={(e) => change({ body: e.target.value })} />
+            <Label>{ar.templates.body}</Label>
+            <RichEditor
+              key={editorKey}
+              ref={bodyRef}
+              dir={isRtl ? "rtl" : "ltr"}
+              value={draft.body}
+              onFocus={() => (lastFocus.current = "body")}
+              onChange={(html) => change({ body: html })}
+            />
           </div>
           <div>
             <p className="mb-1.5 text-xs text-muted-foreground">{ar.templates.variables}</p>

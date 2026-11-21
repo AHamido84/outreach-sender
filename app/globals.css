@@ -132,3 +132,12 @@
   .ltr { direction: ltr; unicode-bidi: plaintext; }
   input[type="email"], input[type="url"], .font-mono { direction: ltr; text-align: start; }
 }
+
+/* Rich email editor content (Tailwind preflight removes default block styles) */
+.rich-editor p { margin: 0 0 0.75em; }
+.rich-editor p:last-child { margin-bottom: 0; }
+.rich-editor ul { list-style: disc; padding-inline-start: 1.5em; margin: 0 0 0.75em; }
+.rich-editor ol { list-style: decimal; padding-inline-start: 1.5em; margin: 0 0 0.75em; }
+.rich-editor h2 { font-size: 1.25em; font-weight: 700; margin: 0 0 0.5em; }
+.rich-editor h3 { font-size: 1.1em; font-weight: 700; margin: 0 0 0.5em; }
+.rich-editor a { color: #0f766e; text-decoration: underline; }

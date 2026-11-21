@@ -65,7 +65,8 @@ export function usedVars(text: string): string[] {
   return out;
 }
 
-export function render(text: string, vars: Record<string, string>): RenderResult {
+/** Replace {variables}. `escape` transforms values (HTML bodies escape them and keep line breaks as <br>). */
+export function render(text: string, vars: Record<string, string>, escape: (v: string) => string = (v) => v): RenderResult {
   const missing: string[] = [];
   const out = String(text || "").replace(VAR_RE, (_all, name: string) => {
     const k = varName(name);
@@ -74,7 +75,7 @@ export function render(text: string, vars: Record<string, string>): RenderResult
       if (!missing.includes(k)) missing.push(k);
       return "";
     }
-    return String(v);
+    return escape(String(v));
   });
   return { text: out, missing };
 }
@@ -93,21 +94,105 @@ export function normalizeLanguage(lang: string | undefined): "AR" | "EN" {
   return "AR";
 }
 
+/** A body saved by the rich editor is HTML; older/plain bodies are plain text. */
+export function isHtmlBody(body: string): boolean {
+  return /<(p|br|div|a|span|strong|b|em|i|u|s|ul|ol|li|h[1-6])(\s[^>]*)?\/?>/i.test(String(body || ""));
+}
+
+/** Plain text → editor HTML (paragraphs on blank lines, <br> on single line breaks). */
+export function plainToHtml(text: string): string {
+  const t = String(text || "").replace(/\r\n/g, "\n").trim();
+  if (!t) return "";
+  return t
+    .split(/\n{2,}/)
+    .map((para) => `<p>${escapeHtml(para).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/g, "&");
+}
+
+/** HTML body → plain-text alternative part. Links become "text (url)". */
+export function htmlToText(html: string): string {
+  let s = String(html || "");
+  s = s.replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, inner: string) => {
+    const label = inner.replace(/<[^>]+>/g, "").trim();
+    const url = decodeEntities(href);
+    return !label || decodeEntities(label) === url ? url : `${label} (${url})`;
+  });
+  s = s
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<\/(p|div|h[1-6])>/gi, "\n\n")
+    .replace(/<\/(li|ul|ol)>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+  return decodeEntities(s)
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Email clients ignore CSS classes: put spacing on block elements inline. */
+function inlineBlockStyles(html: string): string {
+  const add = (tag: string, css: string) =>
+    (h: string) =>
+      h.replace(new RegExp(`<${tag}(\\s[^>]*)?>`, "gi"), (_m, attrs = "") => {
+        const st = attrs.match(/style="([^"]*)"/i);
+        if (st) return `<${tag}${attrs.replace(st[0], `style="${css}${st[1]}"`)}>`;
+        return `<${tag}${attrs} style="${css}">`;
+      });
+  return [add("p", "margin:0 0 12px;"), add("ul", "margin:0 0 12px;padding-inline-start:24px;"), add("ol", "margin:0 0 12px;padding-inline-start:24px;"), add("a", "color:#0f766e;")].reduce(
+    (h, f) => f(h),
+    html,
+  );
+}
+
+function wrapHtml(inner: string, language: string): string {
+  const rtl = isRtlLanguage(language);
+  const dir = rtl ? "rtl" : "ltr";
+  const align = rtl ? "right" : "left";
+  return `<!doctype html><html dir="${dir}"><body><div dir="${dir}" style="direction:${dir};text-align:${align};font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.7;color:#111">${inner}</div></body></html>`;
+}
+
 /** Plain text body → simple HTML (escaped, links clickable, line breaks), RTL for Arabic. */
 export function toHtml(text: string, language: string): string {
-  const rtl = isRtlLanguage(language);
   const body = escapeHtml(text)
     .replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}">${u}</a>`)
     .replace(/\r?\n/g, "<br>\n");
-  const dir = rtl ? "rtl" : "ltr";
-  const align = rtl ? "right" : "left";
-  return `<!doctype html><html dir="${dir}"><body><div dir="${dir}" style="direction:${dir};text-align:${align};font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.7;color:#111">${body}</div></body></html>`;
+  return wrapHtml(body, language);
 }
 
 export type RenderedEmail = { subject: string; text: string; html: string; missing: string[] };
 
 export function renderEmail(tpl: { subject: string; body: string; language: string }, vars: Record<string, string>): RenderedEmail {
   const s = render(tpl.subject, vars);
+  if (isHtmlBody(tpl.body)) {
+    // Variables used as link targets (href="{booking_link}") are filled first, as plain attribute values.
+    const hrefMissing: string[] = [];
+    const withHrefs = tpl.body.replace(/href="([^"]*)"/g, (_m, inner: string) => {
+      const r = render(inner, vars, escapeHtml);
+      hrefMissing.push(...r.missing);
+      return `href="${r.text}"`;
+    });
+    // In text, variable values are escaped, keep line breaks, and bare URLs become clickable.
+    const b = render(withHrefs, vars, (v) =>
+      escapeHtml(v)
+        .replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}">${u}</a>`)
+        .replace(/\r?\n/g, "<br>"),
+    );
+    const missing = [...new Set([...s.missing, ...hrefMissing, ...b.missing])];
+    return { subject: s.text.trim(), text: htmlToText(b.text), html: wrapHtml(inlineBlockStyles(b.text), tpl.language), missing };
+  }
   const b = render(tpl.body, vars);
   const missing = [...new Set([...s.missing, ...b.missing])];
   return { subject: s.text.trim(), text: b.text, html: toHtml(b.text, tpl.language), missing };
