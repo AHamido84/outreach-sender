@@ -24,7 +24,8 @@ export const ar = {
     sentToday: "أُرسل اليوم", lastRun: "آخر تشغيل", auto: "إرسال تلقائي", inactive: "غير نشطة", warnings: "تنبيهات",
     addTitle: "إضافة شركة جديدة", name: "اسم الشركة", url: "رابط Google Sheet", urlHint: "أنشئ شيت فارغ جديد، والصق رابطه هنا",
     testAccess: "فحص الوصول", shareWith: "شارك الشيت مع هذا الإيميل بصلاحية Editor ثم اضغط «فحص الوصول» مرة أخرى:",
-    accessOk: "تم الوصول للشيت ✓", initialize: "تجهيز الشيت", initializing: "جارٍ إنشاء التبويبات والأعمدة…",
+    accessOk: "تم الوصول للشيت بصلاحية Editor ✓",
+    readOnly: "التطبيق يقدر يقرأ الشيت لكن لا يقدر يكتب فيه (صلاحية عرض فقط). شارك الشيت مع هذا الإيميل بصلاحية Editor — وليس مع إيميلك الشخصي — ثم اضغط «فحص الوصول»:", initialize: "تجهيز الشيت", initializing: "جارٍ إنشاء التبويبات والأعمدة…",
     done: "تمت الإضافة والتجهيز ✓", openCompany: "فتح الشركة", step1: "البيانات", step2: "الوصول", step3: "التجهيز",
     color: "اللون", invalidUrl: "الرابط غير صحيح — انسخ رابط الشيت من المتصفح", exists: "هذه الشركة مضافة بالفعل",
   },
@@ -193,6 +194,7 @@ export const ar = {
   errors: {
     unknown: "حدث خطأ غير متوقع",
     sheet_no_access: "لا يمكن الوصول للشيت — شاركه مع إيميل الـ Service Account بصلاحية Editor",
+    sheet_read_only: "التطبيق عنده صلاحية عرض فقط — شارك الشيت مع إيميل الـ Service Account بصلاحية Editor",
     sheet_not_found: "الشيت غير موجود — تأكد من الرابط",
     sheet_not_initialized: "الشيت غير مجهز — اضغط «إصلاح الشيت» من الإعدادات ← متقدم",
     sheets_api: "خطأ من Google Sheets — حاول مرة أخرى بعد قليل",

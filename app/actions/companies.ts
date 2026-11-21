@@ -19,6 +19,13 @@ export async function testAccess(url: string) {
     if (!id) throw new AppError("invalid_url");
     try {
       const meta = await store.getMeta(id);
+      try {
+        // No-op write: proves the service account is an Editor, not just a viewer (e.g. "anyone with the link").
+        await store.batchUpdate(id, [{ updateSpreadsheetProperties: { properties: { title: meta.title }, fields: "title" } }]);
+      } catch (e) {
+        if (isAppError(e, "sheet_no_access")) return { ok: false as const, id, code: "sheet_read_only", serviceAccount: store.serviceAccountEmail() };
+        throw e;
+      }
       return { ok: true as const, id, title: meta.title, serviceAccount: store.serviceAccountEmail(), tabs: meta.tabs.map((t) => t.title) };
     } catch (e) {
       if ((isAppError(e, "sheet_no_access") || isAppError(e, "sheet_not_found")))

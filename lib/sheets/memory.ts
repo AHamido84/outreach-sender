@@ -77,6 +77,7 @@ export class MemorySheetStore implements SheetStore {
 
   async batchUpdateValues(sheetId: string, data: ValueRange[]): Promise<void> {
     const b = this.book(sheetId);
+    if (/readonly/i.test(sheetId)) throw new AppError("sheet_no_access", "The caller does not have permission (demo, view-only)");
     for (const d of data) {
       const { tab, col, row } = parseA1(d.range);
       const t = this.tab(b, tab);
@@ -102,6 +103,7 @@ export class MemorySheetStore implements SheetStore {
 
   async batchUpdate(sheetId: string, requests: object[]): Promise<void> {
     const b = this.book(sheetId);
+    if (/readonly/i.test(sheetId)) throw new AppError("sheet_no_access", "The caller does not have permission (demo, view-only)");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const req of requests as Record<string, any>[]) {
       if (req.addSheet) {
