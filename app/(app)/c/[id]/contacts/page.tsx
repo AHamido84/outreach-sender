@@ -1,4 +1,4 @@
-import { Download, Upload, Users } from "lucide-react";
+import { Download, Search, Upload, Users } from "lucide-react";
 import Link from "next/link";
 import { Empty, PageHeader } from "@/components/app/bits";
 import { ErrorBox } from "@/components/app/error-box";
@@ -49,6 +49,9 @@ export default async function ContactsPage({ params, searchParams }: { params: P
           <>
             <Button variant="outline" asChild>
               <a href={`/c/${id}/contacts/export${qs ? `?${qs}` : ""}`}><Download />{ar.contacts.export}</a>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/c/${id}/contacts/find`}><Search />{ar.sources.button}</Link>
             </Button>
             <Button asChild>
               <Link href={`/c/${id}/contacts/import`}><Upload />{ar.contacts.import}</Link>

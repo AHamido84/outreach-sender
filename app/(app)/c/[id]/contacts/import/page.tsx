@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/app/bits";
 import { ar } from "@/content/ar";
 import { loadCompany, senderSettings } from "@/lib/company";
+import { getStore } from "@/lib/sheets";
 import { ImportWizard } from "./wizard";
 
 export default async function ImportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHeader title={ar.import.title} />
-      <ImportWizard id={id} defaults={defaults} />
+      <ImportWizard id={id} defaults={defaults} serviceAccount={getStore().serviceAccountEmail()} />
     </>
   );
 }

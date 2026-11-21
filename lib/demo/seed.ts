@@ -3,7 +3,7 @@ import { encrypt } from "../crypto";
 import { registrySheetId } from "../env";
 import {
   ACTIVITY_HEADERS, COMPANY_KEYS, CONTACT_HEADERS, DNC_HEADERS, KV_HEADERS, MAPPING_HEADERS, MONDAY_FIELDS, MONDAY_KEYS,
-  MONDAY_MAP_HEADER, REGISTRY_HEADERS, SCHEDULE_HEADERS, SEND_LOG_HEADERS, SENDER_KEYS, TABS, TEMPLATE_HEADERS, type KvDef,
+  MONDAY_MAP_HEADER, REGISTRY_HEADERS, SCHEDULE_HEADERS, SEND_LOG_HEADERS, SENDER_KEYS, SOURCES_KEYS, TABS, TEMPLATE_HEADERS, type KvDef,
 } from "../schema";
 import { MemorySheetStore } from "../sheets/memory";
 
@@ -164,6 +164,7 @@ function buildCompanyA() {
       [MONDAY_MAP_HEADER[0], MONDAY_MAP_HEADER[1], "ربط الحقول بأعمدة monday"],
       ...MONDAY_FIELDS.map((f) => [f, { email: "email_mk1", status: "status", step: "numbers_step", "last sent": "date_last", "next send": "date_next", company: "text_company", person: "text_person", phone: "phone_mk1", website: "link_web" }[f as string] || "", ""]),
     ],
+    sources: kvRows(SOURCES_KEYS, { "Apollo API Key": encrypt("demo-apollo-key-A1b2"), "Hunter API Key": encrypt("demo-hunter-key-H9z8") }),
     templates: table(TEMPLATE_HEADERS, templates),
     contacts: table(CONTACT_HEADERS, contacts),
     log: table(SEND_LOG_HEADERS, log),
@@ -190,6 +191,7 @@ function buildCompanyB() {
     company: kvRows(COMPANY_KEYS, { "Company Name": "Bright Solar", Website: "https://brightsolar.example", Signature: "Sara — Bright Solar" }),
     sender: kvRows(SENDER_KEYS, { "From Name": "Sara", "From Email": "sara@brightsolar.example", "SMTP Host": "smtp.zoho.com", "SMTP User": "sara@brightsolar.example", Timezone: "Asia/Dubai", "Auto Sending": "off" }),
     monday: [...kvRows(MONDAY_KEYS, {}), [MONDAY_MAP_HEADER[0], MONDAY_MAP_HEADER[1], ""], ...MONDAY_FIELDS.map((f) => [f, "", ""])],
+    sources: kvRows(SOURCES_KEYS, {}),
     templates: table(TEMPLATE_HEADERS, [
       { "Template ID": "T1", Name: "Intro", Language: "EN", Step: "0", "Delay Days": "0", Version: "A", Active: "yes", Subject: "Cut {company}'s power bill", Body: "Hi {first_name},\n\nWe install rooftop solar for {industry} businesses in {city}.\n\n{signature}\n\n{unsubscribe}" },
     ]),
@@ -207,7 +209,7 @@ function load(store: MemorySheetStore, id: string, title: string, data: ReturnTy
   const tabs: [string, string[][]][] = [
     [TABS.company, data.company], [TABS.sender, data.sender], [TABS.monday, data.monday], [TABS.templates, data.templates],
     [TABS.contacts, data.contacts], [TABS.sendLog, data.log], [TABS.schedule, data.schedule], [TABS.dnc, data.dnc],
-    [TABS.activity, data.activity], [TABS.mappings, [MAPPING_HEADERS]],
+    [TABS.activity, data.activity], [TABS.mappings, [MAPPING_HEADERS]], [TABS.sources, data.sources],
   ];
   tabs.forEach(([title, rows], i) => b.tabs.push({ sheetId: 1000 + i, title, rows, rightToLeft: true, frozenRows: 1 }));
 }

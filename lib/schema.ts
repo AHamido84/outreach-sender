@@ -11,6 +11,7 @@ export const TABS = {
   dnc: "Do Not Contact",
   activity: "Activity",
   mappings: "Mappings",
+  sources: "Sources",
 } as const;
 
 export const KV_HEADERS = ["key", "value", "description"];
@@ -79,6 +80,20 @@ export const MONDAY_KEYS: KvDef[] = [
   { key: "Create Item On", default: "first send", description: "first send / import / never" },
   { key: "Update Status On Reply", default: "yes", description: "yes / no" },
   { key: "Account Slug", description: "نظام — لروابط العناصر", system: true },
+];
+
+export const SOURCES_KEYS: KvDef[] = [
+  { key: "Apollo API Key", description: "مفتاح Apollo (يُحفظ مشفرًا) — Settings ← Integrations ← API Keys", secret: true },
+  { key: "Apollo Reveal Personal Emails", default: "no", description: "yes = طلب الإيميلات الشخصية أيضًا (قد يستهلك رصيدًا أكثر)" },
+  { key: "Hunter API Key", description: "مفتاح Hunter (يُحفظ مشفرًا)", secret: true },
+  { key: "Hunter Email Type", default: "personal", description: "personal / generic / all" },
+  { key: "Hunter Min Confidence", default: "70", description: "أقل نسبة ثقة للإيميل (0-100)" },
+  { key: "Outscraper API Key", description: "مفتاح Outscraper لبيانات Google Maps (يُحفظ مشفرًا)", secret: true },
+  { key: "Outscraper Language", default: "ar", description: "لغة النتائج، مثال: ar أو en" },
+  { key: "Outscraper Region", default: "SA", description: "كود الدولة، مثال: SA أو EG أو AE" },
+  { key: "Outscraper Find Emails", default: "yes", description: "yes = البحث عن إيميلات من مواقع الشركات (تكلفة إضافية)" },
+  { key: "Default Tags", description: "وسوم تضاف تلقائيًا لجهات الاتصال القادمة من المصادر" },
+  { key: "Default Status", default: "Ready", description: "Ready / New" },
 ];
 
 export const MONDAY_FIELDS = [
@@ -176,13 +191,15 @@ export const KV_TABS: { tab: string; keys: KvDef[] }[] = [
   { tab: TABS.company, keys: COMPANY_KEYS },
   { tab: TABS.sender, keys: SENDER_KEYS },
   { tab: TABS.monday, keys: MONDAY_KEYS },
+  { tab: TABS.sources, keys: SOURCES_KEYS },
 ];
 
-export const ALL_TABS = [TABS.company, TABS.sender, TABS.monday, ...TABLE_TABS.map((t) => t.tab)];
+export const ALL_TABS = [TABS.company, TABS.sender, TABS.monday, ...TABLE_TABS.map((t) => t.tab), TABS.sources];
 
 export const SECRET_KEYS: Record<string, string[]> = {
   [TABS.sender]: SENDER_KEYS.filter((k) => k.secret).map((k) => k.key),
   [TABS.monday]: MONDAY_KEYS.filter((k) => k.secret).map((k) => k.key),
+  [TABS.sources]: SOURCES_KEYS.filter((k) => k.secret).map((k) => k.key),
 };
 
 export const STATUSES = [
