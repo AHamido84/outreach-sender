@@ -17,7 +17,7 @@ import { ar } from "@/content/ar";
 import { isHtmlBody, plainToHtml } from "@/lib/template";
 import { cn } from "@/lib/utils";
 
-export type RichEditorHandle = { insertText: (text: string) => void };
+export type RichEditorHandle = { insertText: (text: string) => void; insertHtml: (html: string) => void };
 
 // Email-safe fonts, plus Cairo (a web font: shown where the mail app loads web fonts, otherwise falls back to Tahoma).
 const FONTS: [string, string][] = [
@@ -123,11 +123,16 @@ function ImageTool({ editor, logoUrl }: { editor: Editor; logoUrl?: string }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [width, setWidth] = useState("160");
+  const [href, setHref] = useState("");
   const insert = (src: string) => {
     if (!/^https?:\/\//i.test(src.trim())) return;
-    editor.chain().focus().insertContent({ type: "image", attrs: { src: src.trim(), alt: "", width: width || null } }).run();
+    let link = href.trim();
+    if (link && !/^(https?:|mailto:|tel:|\{)/i.test(link)) link = `https://${link}`;
+    const img = `<img src="${encodeURI(src.trim())}" alt=""${width ? ` width="${width}"` : ""}>`;
+    editor.chain().focus().insertContent(link ? `<a href="${link.replace(/"/g, "&quot;")}">${img}</a>` : img).run();
     setOpen(false);
     setUrl("");
+    setHref("");
   };
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -142,6 +147,10 @@ function ImageTool({ editor, logoUrl }: { editor: Editor; logoUrl?: string }) {
           <Label htmlFor="img-u">{ar.editor.imageUrl}</Label>
           <Input id="img-u" dir="ltr" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/logo.png" />
           <p className="text-xs text-muted-foreground">{ar.editor.imageHint}</p>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="img-l">{ar.editor.imageLink}</Label>
+          <Input id="img-l" dir="ltr" value={href} onChange={(e) => setHref(e.target.value)} placeholder="https://… (اختياري)" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="img-w">{ar.editor.imageWidth}</Label>
@@ -195,6 +204,7 @@ export const RichEditor = forwardRef<
 
     useImperativeHandle(ref, () => ({
       insertText: (text: string) => editor?.chain().focus().insertContent(text).run(),
+      insertHtml: (html: string) => editor?.chain().focus("end").insertContent(html).run(),
     }), [editor]);
 
     if (!editor) return <div className="min-h-72 rounded-lg border bg-muted/30" />;

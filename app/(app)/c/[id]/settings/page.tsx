@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ar } from "@/content/ar";
 import { loadWithSources, type Ctx } from "@/lib/company";
 import { maskSecret } from "@/lib/crypto";
+import { appUrl } from "@/lib/env";
 import { toErrorInfo } from "@/lib/errors";
 import { MONDAY_FIELDS, TABS } from "@/lib/schema";
 import { getStore } from "@/lib/sheets";
@@ -40,7 +41,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         <TabsList className="flex-wrap">
           {Object.entries(ar.settings.tabs).map(([k, l]) => <TabsTrigger key={k} value={k}>{l}</TabsTrigger>)}
         </TabsList>
-        <TabsContent value="company"><CompanyTab id={id} values={ctx.company.values} /></TabsContent>
+        <TabsContent value="company"><CompanyTab id={id} values={ctx.company.values} baseUrl={appUrl() || undefined} /></TabsContent>
         <TabsContent value="sender">
           <SenderTab
             id={id}

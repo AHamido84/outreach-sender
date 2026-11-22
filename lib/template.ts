@@ -152,7 +152,7 @@ function inlineBlockStyles(html: string): string {
         if (st) return `<${tag}${attrs.replace(st[0], `style="${css}${st[1]}"`)}>`;
         return `<${tag}${attrs} style="${css}">`;
       });
-  return [add("img", "max-width:100%;height:auto;border:0;"), add("p", "margin:0 0 12px;"), add("ul", "margin:0 0 12px;padding-inline-start:24px;"), add("ol", "margin:0 0 12px;padding-inline-start:24px;"), add("a", "color:#0f766e;")].reduce(
+  return [add("img", "max-width:100%;height:auto;border:0;display:inline-block;vertical-align:middle;"), add("p", "margin:0 0 12px;"), add("ul", "margin:0 0 12px;padding-inline-start:24px;"), add("ol", "margin:0 0 12px;padding-inline-start:24px;"), add("a", "color:#0f766e;")].reduce(
     (h, f) => f(h),
     html,
   );

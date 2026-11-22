@@ -143,3 +143,6 @@
 .rich-editor h2 { font-size: 1.25em; font-weight: 700; margin: 0 0 0.5em; }
 .rich-editor h3 { font-size: 1.1em; font-weight: 700; margin: 0 0 0.5em; }
 .rich-editor a { color: #0f766e; text-decoration: underline; }
+/* Images in signatures/templates are inline (e.g. a row of social icons), like in email clients */
+.rich-editor img { display: inline-block; vertical-align: middle; }
+.rich-editor img.ProseMirror-separator { display: inline !important; }
