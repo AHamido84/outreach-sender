@@ -28,7 +28,8 @@ export const COMPANY_KEYS: KvDef[] = [
   { key: "Profile Link", description: "رابط بروفايل الشركة (PDF أو صفحة)" },
   { key: "Booking Link", description: "رابط حجز موعد" },
   { key: "Logo URL", description: "رابط اللوجو" },
-  { key: "Signature", description: "التوقيع (يمكن أن يكون عدة أسطر)" },
+  { key: "Signature", description: "التوقيع ({signature}) — يُحرَّر من الإعدادات ← الشركة ← التوقيع" },
+  { key: "Append Signature", default: "no", description: "yes = إضافة التوقيع تلقائيًا في آخر كل إيميل لا يحتوي {signature}" },
 ];
 
 export const SENDER_KEYS: KvDef[] = [
@@ -124,6 +125,7 @@ export const TEMPLATE_HEADERS = [
   "Body",
   "Version",
   "Active",
+  "Attachments",
 ];
 
 export const CONTACT_DATA_HEADERS = [

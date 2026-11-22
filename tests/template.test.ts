@@ -93,3 +93,28 @@ describe("web fonts", () => {
     expect(plain.html).not.toContain("fonts.googleapis.com");
   });
 });
+
+describe("signature", () => {
+  const richSig = '<p><strong>أحمد سمير</strong></p><p><img src="https://x.co/logo.png" width="120"></p><p><a href="https://x.co">x.co</a></p>';
+  const v = { ...buildVars({ company: { ...company, Signature: richSig }, sender, contact }) };
+  it("inserts a rich signature as HTML (not escaped, not nested in <p>)", () => {
+    const e = renderEmail({ subject: "s", body: "<p>أهلاً</p><p>{signature}</p>", language: "AR" }, v);
+    expect(e.html).toContain("<strong>أحمد سمير</strong>");
+    expect(e.html).not.toContain("&lt;strong&gt;");
+    expect(e.html).toMatch(/<div><p style="[^"]*"><strong>/);
+    expect(e.html).toContain('<img src="https://x.co/logo.png" width="120" style="max-width:100%;height:auto;border:0;">');
+    expect(e.text).toContain("أحمد سمير");
+  });
+  it("works in old plain-text bodies too", () => {
+    const e = renderEmail({ subject: "s", body: "أهلاً\n\n{signature}", language: "AR" }, v);
+    expect(e.html).toContain("<strong>أحمد سمير</strong>");
+  });
+  it("appends the signature automatically when the template doesn't use it", () => {
+    const e = renderEmail({ subject: "s", body: "<p>أهلاً</p>", language: "AR" }, v, { appendSignature: true });
+    expect(e.html).toContain("<strong>أحمد سمير</strong>");
+    const twice = renderEmail({ subject: "s", body: "<p>{signature}</p>", language: "AR" }, v, { appendSignature: true });
+    expect(twice.html.match(/أحمد سمير/g)).toHaveLength(1);
+    const off = renderEmail({ subject: "s", body: "<p>أهلاً</p>", language: "AR" }, v);
+    expect(off.html).not.toContain("أحمد سمير");
+  });
+});

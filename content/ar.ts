@@ -158,6 +158,15 @@ export const ar = {
     noEmailSkipped: (n: number) => `${n} بدون إيميل — لم تتم إضافتهم`, columns: { who: "الجهة", email: "الإيميل", place: "المكان", status: "الحالة" },
     fromSheet: "من Google Sheet", sheetUrl: "رابط الشيت", sheetTab: "التبويب", readSheet: "قراءة الشيت", sheetShare: "شارك الشيت مع هذا الإيميل (Viewer يكفي) ثم اضغط «قراءة الشيت»:",
   },
+  attachments: {
+    title: "المرفقات", add: "إضافة مرفق", check: "فحص الروابط", empty: "لا توجد مرفقات لهذا القالب.", namePh: "اسم الملف (اختياري)",
+    hint: "الصق رابط الملف (Google Drive أو Dropbox أو أي رابط عام). في Drive: مشاركة ← «أي شخص لديه الرابط». الحد 10MB للملف و15MB للإيميل. ملاحظة: المرفقات في أول رسالة لشخص لا يعرفك تقلل الوصول للـ Inbox — يُفضّل وضع رابط في النص بدل المرفق، أو إرفاقها في المتابعات.",
+  },
+  signature: {
+    title: "التوقيع", hint: "التوقيع يظهر مكان {signature} في القوالب. يمكنك إضافة لوجو وروابط وتنسيق.",
+    append: "أضف التوقيع تلقائيًا في آخر كل إيميل لا يحتوي {signature}", saved: "تم حفظ التوقيع ✓", preview: "معاينة التوقيع",
+    noLogo: "أضف «رابط اللوجو» في بيانات الشركة لتظهر زر «إدراج اللوجو».",
+  },
   editor: {
     font: "الخط", defaultFont: "الخط الافتراضي", size: "الحجم", defaultSize: "الحجم", bold: "عريض", italic: "مائل", underline: "تحته خط",
     strike: "يتوسطه خط", color: "لون النص", highlight: "لون الخلفية", customColor: "لون مخصص", noColor: "بدون لون", link: "رابط",
@@ -165,6 +174,8 @@ export const ar = {
     linkHint: "تقدر تكتب متغير كرابط، مثل {booking_link} أو {profile_link}. ظلّل كلمة في النص قبل الضغط لتحويلها لرابط.",
     alignRight: "محاذاة يمين", alignCenter: "توسيط", alignLeft: "محاذاة يسار", bullets: "قائمة نقطية", numbers: "قائمة مرقمة",
     clear: "إزالة التنسيق", undo: "تراجع", redo: "إعادة",
+    image: "صورة", imageUrl: "رابط الصورة", imageWidth: "العرض", imageOriginal: "الحجم الأصلي", insert: "إدراج", insertLogo: "إدراج اللوجو",
+    imageHint: "الصورة لازم تكون على رابط عام (موقعك، أو Imgur…). صور Google Drive غالبًا لا تظهر في الإيميل.",
   },
   send: {
     title: "الإرسال", manual: "إرسال يدوي", schedule: "جدولة", auto: "الإرسال التلقائي",
@@ -225,7 +236,7 @@ export const ar = {
   fields: {
     "Company Name": "اسم الشركة", Website: "الموقع", Phone: "الهاتف", WhatsApp: "واتساب", Address: "العنوان",
     "Short Description": "وصف قصير", "Profile Link": "رابط البروفايل", "Booking Link": "رابط الحجز", "Logo URL": "رابط اللوجو",
-    Signature: "التوقيع", "From Name": "اسم المرسل", "From Email": "إيميل المرسل", "Reply-To": "إيميل الرد (Reply-To)",
+    Signature: "التوقيع", "Append Signature": "إضافة التوقيع تلقائيًا", "From Name": "اسم المرسل", "From Email": "إيميل المرسل", "Reply-To": "إيميل الرد (Reply-To)",
     "SMTP Host": "SMTP Host", "SMTP Port": "SMTP Port", "SMTP Secure": "SSL (Secure)", "SMTP User": "SMTP User", "SMTP Password": "SMTP Password",
     "IMAP Host": "IMAP Host", "IMAP Port": "IMAP Port", "IMAP User": "IMAP User", "IMAP Password": "IMAP Password",
     "Daily Limit": "الحد اليومي", "Emails Per Run": "إيميلات لكل تشغيل", "Delay Between Emails": "ثواني بين الإيميلات",
@@ -273,6 +284,9 @@ export const ar = {
     invalid_input: "بيانات غير صحيحة",
     auto_blocked: "الإرسال التلقائي غير جاهز",
     invalid_url: "الرابط غير صحيح — انسخ رابط الشيت من المتصفح",
+    attachment_failed: "تعذر تحميل المرفق — تأكد من الرابط",
+    attachment_not_public: "الملف غير متاح للعامة — في Google Drive اجعله «أي شخص لديه الرابط»",
+    attachment_too_big: "المرفق كبير جدًا (الحد 10MB للملف و15MB للإيميل)",
     source_not_connected: "المصدر غير مربوط — أضف المفتاح من الإعدادات ← مصادر جهات الاتصال",
     source_auth: "المفتاح غير صحيح أو منتهي — راجعه في حساب المصدر",
     source_forbidden: "حسابك أو المفتاح لا يسمح بهذا الطلب (راجع الباقة أو صلاحيات المفتاح)",

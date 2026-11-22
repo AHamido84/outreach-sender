@@ -49,6 +49,7 @@ export const realMailer: Mailer = {
         inReplyTo: msg.inReplyTo,
         references: msg.references,
         headers: msg.headers,
+        attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
       });
       return { messageId: info.messageId || msg.messageId };
     } catch (e) {

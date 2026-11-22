@@ -1,10 +1,11 @@
 "use client";
+import { Image } from "@tiptap/extension-image";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import {
-  AlignCenter, AlignLeft, AlignRight, Bold, Eraser, Highlighter, Italic, Link2, List, ListOrdered, Palette, Redo2, Strikethrough,
+  AlignCenter, AlignLeft, AlignRight, Bold, Eraser, Highlighter, ImageIcon, Italic, Link2, List, ListOrdered, Palette, Redo2, Strikethrough,
   Underline as UnderlineIcon, Undo2, Unlink,
 } from "lucide-react";
 import { forwardRef, useImperativeHandle, useState } from "react";
@@ -118,8 +119,50 @@ function LinkTool({ editor }: { editor: Editor }) {
   );
 }
 
-export const RichEditor = forwardRef<RichEditorHandle, { value: string; onChange: (html: string) => void; dir: "rtl" | "ltr"; onFocus?: () => void }>(
-  function RichEditor({ value, onChange, dir, onFocus }, ref) {
+function ImageTool({ editor, logoUrl }: { editor: Editor; logoUrl?: string }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [width, setWidth] = useState("160");
+  const insert = (src: string) => {
+    if (!/^https?:\/\//i.test(src.trim())) return;
+    editor.chain().focus().insertContent({ type: "image", attrs: { src: src.trim(), alt: "", width: width || null } }).run();
+    setOpen(false);
+    setUrl("");
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" title={ar.editor.image} aria-label={ar.editor.image} onMouseDown={(e) => e.preventDefault()}
+          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+          <ImageIcon className="size-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 space-y-3" align="start">
+        <div className="space-y-1">
+          <Label htmlFor="img-u">{ar.editor.imageUrl}</Label>
+          <Input id="img-u" dir="ltr" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/logo.png" />
+          <p className="text-xs text-muted-foreground">{ar.editor.imageHint}</p>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="img-w">{ar.editor.imageWidth}</Label>
+          <select id="img-w" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={width} onChange={(e) => setWidth(e.target.value)}>
+            {["80", "120", "160", "240", "320", ""].map((w) => <option key={w} value={w}>{w ? `${w}px` : ar.editor.imageOriginal}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" onClick={() => insert(url)} disabled={!/^https?:\/\//i.test(url.trim())}>{ar.editor.insert}</Button>
+          {logoUrl && <Button type="button" size="sm" variant="outline" onClick={() => insert(logoUrl)}>{ar.editor.insertLogo}</Button>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export const RichEditor = forwardRef<
+  RichEditorHandle,
+  { value: string; onChange: (html: string) => void; dir: "rtl" | "ltr"; onFocus?: () => void; logoUrl?: string; minHeight?: string }
+>(
+  function RichEditor({ value, onChange, dir, onFocus, logoUrl, minHeight }, ref) {
     const editor = useEditor({
       immediatelyRender: false,
       shouldRerenderOnTransaction: true, // keep toolbar state (active buttons, font, size) in sync
@@ -138,9 +181,14 @@ export const RichEditor = forwardRef<RichEditorHandle, { value: string; onChange
         }),
         TextStyleKit.configure({ lineHeight: false }),
         TextAlign.configure({ types: ["paragraph", "heading"] }),
+        Image.configure({ inline: true, allowBase64: false, HTMLAttributes: { style: "max-width:100%;height:auto;" } }).extend({
+          addAttributes() {
+            return { ...this.parent?.(), width: { default: null, renderHTML: (a) => (a.width ? { width: a.width } : {}) } };
+          },
+        }),
       ],
       content: isHtmlBody(value) ? value : plainToHtml(value),
-      editorProps: { attributes: { class: "rich-editor min-h-64 px-3 py-2.5 text-sm leading-relaxed outline-none", dir } },
+      editorProps: { attributes: { class: cn("rich-editor px-3 py-2.5 text-sm leading-relaxed outline-none", minHeight || "min-h-64"), dir } },
       onUpdate: ({ editor }) => onChange(editor.isEmpty ? "" : editor.getHTML()),
       onFocus: () => onFocus?.(),
     });
@@ -198,6 +246,7 @@ export const RichEditor = forwardRef<RichEditorHandle, { value: string; onChange
             </PopoverContent>
           </Popover>
           <LinkTool editor={editor} />
+          <ImageTool editor={editor} logoUrl={logoUrl} />
           <span className="mx-1 h-5 w-px bg-border" />
           <Tool title={ar.editor.alignRight} on={st.right} onClick={() => c().setTextAlign("right").run()}><AlignRight className="size-4" /></Tool>
           <Tool title={ar.editor.alignCenter} on={st.center} onClick={() => c().setTextAlign("center").run()}><AlignCenter className="size-4" /></Tool>

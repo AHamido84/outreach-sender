@@ -78,3 +78,21 @@ describe("import dedup options", () => {
     expect(r[2].reason).toBe("resend");
   });
 });
+
+describe("attachments", async () => {
+  const { directUrl, parseAttachments, formatAttachments } = await import("@/lib/attachments");
+  it("parses 'name | url' lines and ignores non-links", () => {
+    expect(parseAttachments("بروفايل الشركة.pdf | https://x.co/p.pdf\nhttps://y.co/a.png\nnot a link")).toEqual([
+      { name: "بروفايل الشركة.pdf", url: "https://x.co/p.pdf" },
+      { url: "https://y.co/a.png" },
+    ]);
+    expect(formatAttachments([{ name: "A", url: "https://a" }, { url: "https://b" }])).toBe("A | https://a\nhttps://b");
+  });
+  it("turns share links into direct downloads", () => {
+    expect(directUrl("https://drive.google.com/file/d/1AbC-d_9/view?usp=sharing")).toBe("https://drive.google.com/uc?export=download&id=1AbC-d_9");
+    expect(directUrl("https://drive.google.com/open?id=XYZ")).toBe("https://drive.google.com/uc?export=download&id=XYZ");
+    expect(directUrl("https://docs.google.com/document/d/DOC1/edit")).toBe("https://docs.google.com/document/d/DOC1/export?format=pdf");
+    expect(directUrl("https://www.dropbox.com/s/k/file.pdf?dl=0")).toBe("https://www.dropbox.com/s/k/file.pdf?dl=1");
+    expect(directUrl("https://site.com/f.pdf")).toBe("https://site.com/f.pdf");
+  });
+});

@@ -30,6 +30,7 @@ export default async function TemplatesPage({ params }: { params: Promise<{ id: 
         contacts={contacts}
         builtins={[...BUILTIN_VARS]}
         contactVars={contactVars}
+        logoUrl={ctx.company.values["Logo URL"] || undefined}
       />
     </>
   );
