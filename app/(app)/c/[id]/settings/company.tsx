@@ -3,7 +3,7 @@ import { Section } from "@/components/app/bits";
 import { KvForm } from "@/components/app/kv-form";
 import { SignatureSection } from "./signature";
 
-export function CompanyTab({ id, values }: { id: string; values: Record<string, string> }) {
+export function CompanyTab({ id, values, baseUrl }: { id: string; values: Record<string, string>; baseUrl?: string }) {
   return (
     <div className="space-y-4">
       <Section>
@@ -23,6 +23,7 @@ export function CompanyTab({ id, values }: { id: string; values: Record<string, 
         signature={values["Signature"] || ""}
         append={/^(yes|on|true|1)$/i.test(values["Append Signature"] || "")}
         logoUrl={values["Logo URL"] || undefined}
+        baseUrl={baseUrl}
       />
     </div>
   );

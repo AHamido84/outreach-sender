@@ -16,8 +16,13 @@ export function columnValue(type: string, value: string): unknown {
     }
     case "email":
       return v ? { email: v, text: v } : null;
-    case "phone":
-      return v ? { phone: v.replace(/[^\d+]/g, ""), countryShortName: "" } : null;
+    case "phone": {
+      // monday requires a country code with phone values; derive it from the dialing prefix, else skip the column.
+      if (!v) return null;
+      const phone = v.replace(/[^\d+]/g, "").replace(/^00/, "+");
+      const country = countryFromPhone(phone);
+      return country ? { phone, countryShortName: country } : null;
+    }
     case "link":
       return v ? { url: /^https?:\/\//.test(v) ? v : `https://${v}`, text: v } : null;
     case "long_text":
@@ -68,4 +73,17 @@ export const FIELD_SOURCE: Record<MondayField, string> = {
 
 export function itemUrl(slug: string, boardId: string, itemId: string): string {
   return slug ? `https://${slug}.monday.com/boards/${boardId}/pulses/${itemId}` : `https://monday.com/boards/${boardId}/pulses/${itemId}`;
+}
+
+const DIAL: [string, string][] = [
+  ["+966", "SA"], ["+971", "AE"], ["+965", "KW"], ["+974", "QA"], ["+973", "BH"], ["+968", "OM"], ["+962", "JO"], ["+961", "LB"],
+  ["+964", "IQ"], ["+963", "SY"], ["+970", "PS"], ["+967", "YE"], ["+249", "SD"], ["+218", "LY"], ["+216", "TN"], ["+213", "DZ"],
+  ["+212", "MA"], ["+20", "EG"], ["+90", "TR"], ["+44", "GB"], ["+49", "DE"], ["+33", "FR"], ["+91", "IN"], ["+92", "PK"], ["+1", "US"],
+];
+
+/** ISO country code from an international phone number (+966… → SA). Local numbers without + return "". */
+export function countryFromPhone(phone: string): string {
+  const p = phone.trim();
+  if (!p.startsWith("+")) return "";
+  return DIAL.find(([code]) => p.startsWith(code))?.[1] || "";
 }

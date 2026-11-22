@@ -102,7 +102,7 @@ describe("signature", () => {
     expect(e.html).toContain("<strong>أحمد سمير</strong>");
     expect(e.html).not.toContain("&lt;strong&gt;");
     expect(e.html).toMatch(/<div><p style="[^"]*"><strong>/);
-    expect(e.html).toContain('<img src="https://x.co/logo.png" width="120" style="max-width:100%;height:auto;border:0;">');
+    expect(e.html).toContain('<img src="https://x.co/logo.png" width="120" style="max-width:100%;height:auto;border:0;display:inline-block;vertical-align:middle;">');
     expect(e.text).toContain("أحمد سمير");
   });
   it("works in old plain-text bodies too", () => {
@@ -116,5 +116,21 @@ describe("signature", () => {
     expect(twice.html.match(/أحمد سمير/g)).toHaveLength(1);
     const off = renderEmail({ subject: "s", body: "<p>أهلاً</p>", language: "AR" }, v);
     expect(off.html).not.toContain("أحمد سمير");
+  });
+});
+
+describe("social icons in signatures", async () => {
+  const { socialRowHtml } = await import("@/lib/social");
+  it("builds linked icons and keeps them as links in the email", () => {
+    const row = socialRowHtml("https://app.example.com", { facebook: "facebook.com/alnoor", whatsapp: "+966 55 123 4567", email: "a@b.co", x: "" }, 28);
+    expect(row).toBe(
+      '<p><a href="https://facebook.com/alnoor"><img src="https://app.example.com/social/facebook.png" alt="Facebook" width="28"></a>&nbsp;&nbsp;' +
+        '<a href="https://wa.me/966551234567"><img src="https://app.example.com/social/whatsapp.png" alt="WhatsApp" width="28"></a>&nbsp;&nbsp;' +
+        '<a href="mailto:a@b.co"><img src="https://app.example.com/social/email.png" alt="Email" width="28"></a></p>',
+    );
+    const v = buildVars({ company: { ...company, Signature: `<p>أحمد</p>${row}` }, sender, contact });
+    const e = renderEmail({ subject: "s", body: "<p>{signature}</p>", language: "AR" }, v);
+    expect(e.html).toContain('<a href="https://facebook.com/alnoor" style="color:#0f766e;"><img src="https://app.example.com/social/facebook.png" alt="Facebook" width="28" style="max-width:100%;height:auto;border:0;display:inline-block;vertical-align:middle;"></a>');
+    expect(e.text).toContain("https://wa.me/966551234567");
   });
 });
