@@ -105,7 +105,7 @@ export function ManualSend({ id, tags, mondaySlug, mondayBoard }: { id: string; 
   const retryMonday = async (contactId: string) => {
     const r = await bulkAction(id, [contactId], "monday");
     if (!r.ok) return void toast.error(errorMessage(r.error));
-    setLines((cur) => cur!.map((l) => (l.contactId === contactId ? { ...l, monday: { ok: r.data.count > 0, error: r.data.count ? undefined : "retry failed" } } : l)));
+    setLines((cur) => cur!.map((l) => (l.contactId === contactId ? { ...l, monday: { ...l.monday, ok: r.data.count > 0, error: r.data.count ? undefined : r.data.errors[0] || "retry failed" } } : l)));
   };
 
   const done = lines?.filter((l) => l.state === "done").length || 0;
@@ -245,6 +245,9 @@ export function ManualSend({ id, tags, mondaySlug, mondayBoard }: { id: string; 
                     )}
                     {!l.monday.ok && <Button size="xs" variant="outline" onClick={() => retryMonday(l.contactId)}><RefreshCw />{ar.common.retry}</Button>}
                   </span>
+                )}
+                {l.state === "done" && l.monday && !l.monday.ok && l.monday.error && (
+                  <span className="ltr basis-full ps-8 text-xs text-rose-600">monday: {l.monday.error}</span>
                 )}
               </li>
             ))}

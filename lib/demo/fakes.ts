@@ -122,6 +122,7 @@ export const fakeMonday: MondayApi = {
     return { id };
   },
   async updateItem(_token, boardId, itemId, values) {
+    if (JSON.stringify(values).includes("mfail")) throw new AppError("monday_api", "ColumnValueException: invalid email value (demo)");
     const b = demoState().boards.get(boardId);
     const it = b?.items.get(itemId);
     if (it) Object.assign(it.values, values);

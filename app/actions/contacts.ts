@@ -37,11 +37,12 @@ export async function updateContact(id: string, contactId: string, patch: Record
 export async function bulkAction(id: string, ids: string[], action: "tags" | "ready" | "restart" | "dnc" | "monday" | "delete", arg = "") {
   return act(async () => {
     await requireSession();
-    if (!ids.length) return { count: 0 };
+    if (!ids.length) return { count: 0, errors: [] as string[] };
     const ctx = await loadCompany(id);
     const t = ctx.t[TABS.contacts];
     const rows = t.rows.filter((r) => ids.includes(get(r, "ID")));
     let count = 0;
+    const errors: string[] = [];
     if (action === "tags") {
       for (const r of rows) count += ctx.w.update(t, r, { Tags: arg.split(/[,،]/).map((x) => x.trim()).filter(Boolean).join(", ") }).length ? 1 : 0;
     } else if (action === "ready") {
@@ -78,6 +79,7 @@ export async function bulkAction(id: string, ids: string[], action: "tags" | "re
         if (Date.now() > deadline) break;
         const res = await syncContactToMonday(ctx, r, "retry");
         if (res.ok && !res.skipped) count++;
+        else if (!res.ok && res.error) errors.push(res.error);
       }
     } else if (action === "delete") {
       const meta = await getStore().getMeta(id);
@@ -93,7 +95,7 @@ export async function bulkAction(id: string, ids: string[], action: "tags" | "re
     await ctx.w.flush();
     await logActivity(ctx, `Bulk: ${action}`, `${count}/${ids.length} contacts${arg ? ` (${arg})` : ""}`);
     revalidatePath(`/c/${id}/contacts`);
-    return { count };
+    return { count, errors };
   });
 }
 

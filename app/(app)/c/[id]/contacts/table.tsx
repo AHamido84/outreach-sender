@@ -60,7 +60,7 @@ export function ContactsTable(props: {
       const r = await bulkAction(id, [cid], "monday");
       if (!r.ok) return void toast.error(errorMessage(r.error));
       if (r.data.count) toast.success(ar.contacts.bulk.done);
-      else toast.error(ar.contacts.mondayStatus.Failed);
+      else toast.error(`monday: ${r.data.errors[0] || ar.contacts.mondayStatus.Failed}`, { duration: 10000 });
       router.refresh();
     });
 
