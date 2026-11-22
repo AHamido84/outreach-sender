@@ -1,6 +1,7 @@
 // The sending engine, shared by manual, scheduled and auto runs.
 import { randomBytes } from "node:crypto";
 import { getMailer } from "./adapters";
+import { loadAttachments } from "./attachments";
 import { loadCompany, logActivity, senderSettings, type Ctx, type SenderSettings } from "./company";
 import { unsubscribeToken } from "./crypto";
 import { splitIds } from "./detect";
@@ -10,7 +11,7 @@ import { AppError, isAppError, toErrorInfo, type ErrorInfo } from "./errors";
 import { syncContactToMonday, type MondayOutcome } from "./monday";
 import { TABS } from "./schema";
 import {
-  activeTemplates, chooseTemplate, selectContacts, statusForStep, STOP_STATUSES, type Filter, type Pick, type Template,
+  activeTemplates, chooseTemplate, isYes, selectContacts, statusForStep, STOP_STATUSES, type Filter, type Pick, type Template,
 } from "./selection";
 import { getStore } from "./sheets";
 import { get, readTables, setKv, toKv, type Row, type Table } from "./table";
@@ -173,7 +174,7 @@ export function composeFor(ctx: Ctx, s: SenderSettings, pick: Pick) {
     contactHeaders: ctx.t[TABS.contacts].headers,
     unsubscribeLink: link,
   });
-  const rendered = renderEmail(pick.template, vars);
+  const rendered = renderEmail(pick.template, vars, { appendSignature: isYes(ctx.company.values["Append Signature"]) });
   let subject = rendered.subject;
   let inReplyTo: string | undefined;
   let references: string[] | undefined;
@@ -303,9 +304,21 @@ export async function runBatchWith(ctx: Ctx, opts: RunOptions): Promise<RunOutco
         }
         continue;
       }
+      let attachments: Awaited<ReturnType<typeof loadAttachments>> = [];
+      try {
+        attachments = await loadAttachments(p.template.attachments);
+      } catch (e) {
+        // A broken attachment link must not send an incomplete email.
+        const error = toErrorInfo(e);
+        ctx.w.update(contacts, p.contact, { Error: `${error.code}: ${error.detail}`.slice(0, 300) });
+        ctx.w.append(log, { ...logRow, Result: "Skipped", Error: `${error.code}: ${error.detail}`.slice(0, 500) });
+        out.results.push({ ...base, subject: m.subject, result: "Skipped", error });
+        await ctx.w.flush();
+        continue;
+      }
       const messageId = messageIdFor(s.smtp.fromEmail);
       try {
-        await mailer.send(s.smtp, { to: m.to, subject: m.subject, text: m.text, html: m.html, messageId, inReplyTo: m.inReplyTo, references: m.references, headers: m.headers });
+        await mailer.send(s.smtp, { to: m.to, subject: m.subject, text: m.text, html: m.html, messageId, inReplyTo: m.inReplyTo, references: m.references, headers: m.headers, attachments });
       } catch (e) {
         const error = toErrorInfo(e);
         ctx.w.update(contacts, p.contact, { Error: `${error.code}: ${error.detail}`.slice(0, 300) });

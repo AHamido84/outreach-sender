@@ -22,6 +22,7 @@ export type OutgoingEmail = {
   inReplyTo?: string;
   references?: string[];
   headers?: Record<string, string>;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 };
 
 export interface Mailer {

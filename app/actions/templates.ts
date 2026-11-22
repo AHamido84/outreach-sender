@@ -1,6 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { getMailer } from "@/lib/adapters";
+import { formatAttachments, loadAttachment, loadAttachments, parseAttachments } from "@/lib/attachments";
+import { initializeSheet } from "@/lib/init";
+import { toErrorInfo } from "@/lib/errors";
 import { act } from "@/lib/action";
 import { requireSession } from "@/lib/auth-server";
 import { loadCompany, logActivity, senderSettings } from "@/lib/company";
@@ -23,24 +26,31 @@ export type TemplateDraft = {
   body: string;
   version: string;
   active: boolean;
+  attachments?: string;
 };
 
 function toTpl(d: TemplateDraft): Template {
   return {
     id: d.id || "draft", name: d.name, language: normalizeLanguage(d.language), step: Number(d.step) || 0, delayDays: Number(d.delayDays) || 0,
-    subject: d.subject, body: d.body, version: (d.version || "A").toUpperCase(), active: d.active,
+    subject: d.subject, body: d.body, version: (d.version || "A").toUpperCase(), active: d.active, attachments: d.attachments || "",
   };
 }
 
 export async function saveTemplate(id: string, d: TemplateDraft) {
   return act(async () => {
     await requireSession();
-    const ctx = await loadCompany(id);
+    let ctx = await loadCompany(id);
+    if (d.attachments?.trim() && !ctx.t[TABS.templates].headers.includes("Attachments")) {
+      // Older sheet: add the new column first (same as "Repair sheet").
+      await initializeSheet(id);
+      ctx = await loadCompany(id);
+    }
     const t = ctx.t[TABS.templates];
     const values = {
       Name: d.name.trim(), Language: normalizeLanguage(d.language), Step: String(Math.max(0, Math.round(Number(d.step) || 0))),
       "Delay Days": String(Math.max(0, Number(d.delayDays) || 0)), Subject: d.subject, Body: d.body,
       Version: (d.version || "A").trim().toUpperCase().slice(0, 3), Active: d.active ? "yes" : "no",
+      Attachments: formatAttachments(parseAttachments(d.attachments)),
     };
     let tid = d.id;
     const row = tid ? t.rows.find((r) => get(r, "Template ID") === tid) : undefined;
@@ -109,11 +119,30 @@ export async function sendTemplateTest(id: string, d: TemplateDraft, contactId?:
     const m = composeFor(ctx, s, { contact, step: tpl.step, template: tpl, kind: tpl.step ? "followup" : "first" });
     const to = s.smtp.replyTo || s.smtp.fromEmail;
     if (!to) throw new AppError("smtp_missing");
+    const attachments = await loadAttachments(d.attachments);
     await getMailer().send(s.smtp, {
-      to, subject: `[تجربة] ${m.subject}`, text: m.text, html: m.html,
+      to, subject: `[تجربة] ${m.subject}`, text: m.text, html: m.html, attachments,
       messageId: `<test.${Date.now()}@${domainOf(s.smtp.fromEmail) || "outreach.local"}>`,
     });
     await logActivity(ctx, "Template test sent", `${d.id || "draft"} → ${to} (contact ${get(contact, "ID")})`);
     return { to, missing: m.missing };
+  });
+}
+
+/** Download each attachment link once to check it is public, and report name and size. */
+export async function checkAttachments(raw: string) {
+  return act(async () => {
+    await requireSession();
+    const refs = parseAttachments(raw);
+    return Promise.all(
+      refs.map(async (ref) => {
+        try {
+          const f = await loadAttachment(ref);
+          return { url: ref.url, ok: true as const, filename: f.filename, size: f.size, type: f.contentType };
+        } catch (e) {
+          return { url: ref.url, ok: false as const, error: toErrorInfo(e) };
+        }
+      }),
+    );
   });
 }

@@ -149,7 +149,7 @@ function buildCompanyA() {
     company: kvRows(COMPANY_KEYS, {
       "Company Name": "النور للحلول الرقمية", Website: "https://alnoor.digital", Phone: "+966 11 555 0101", WhatsApp: "+966 55 123 4567",
       Address: "الرياض، حي العليا", "Short Description": "وكالة تسويق رقمي متخصصة في الشركات الصغيرة والمتوسطة",
-      "Profile Link": "https://alnoor.digital/profile.pdf", "Booking Link": "https://cal.com/alnoor/15min", "Logo URL": "", Signature: sig,
+      "Profile Link": "https://alnoor.digital/profile.pdf", "Booking Link": "https://cal.com/alnoor/15min", "Logo URL": "https://placehold.co/160x48/0f766e/ffffff/png?text=AlNoor", Signature: sig,
     }),
     sender: kvRows(SENDER_KEYS, {
       "From Name": "أحمد سمير", "From Email": "ahmed@alnoor.digital", "Reply-To": "", "SMTP Host": "smtp.gmail.com", "SMTP Port": "465",

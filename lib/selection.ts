@@ -16,6 +16,8 @@ export type Template = {
   body: string;
   version: string;
   active: boolean;
+  /** One per line: "URL" or "File name | URL". */
+  attachments?: string;
   _row?: number;
 };
 
@@ -34,6 +36,7 @@ export function toTemplate(r: Row): Template {
     body: get(r, "Body"),
     version: (get(r, "Version") || "A").trim().toUpperCase(),
     active: isYes(get(r, "Active")),
+    attachments: get(r, "Attachments"),
     _row: r._row,
   };
 }

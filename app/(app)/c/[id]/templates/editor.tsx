@@ -1,5 +1,5 @@
 "use client";
-import { AlertTriangle, CheckCircle2, Copy, Loader2, Plus, Save, Send, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, Loader2, Paperclip, Plus, Save, Send, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AttachmentsEditor } from "@/components/app/attachments-editor";
+import { parseAttachments } from "@/lib/attachments";
 import { RichEditor, type RichEditorHandle } from "@/components/app/rich-editor";
 import { ar } from "@/content/ar";
 import type { Template } from "@/lib/selection";
@@ -27,6 +29,7 @@ export function TemplatesEditor(props: {
   contacts: { id: string; label: string; language: string }[];
   builtins: string[];
   contactVars: string[];
+  logoUrl?: string;
 }) {
   const { id, templates, contacts } = props;
   const router = useRouter();
@@ -215,8 +218,10 @@ export function TemplatesEditor(props: {
               value={draft.body}
               onFocus={() => (lastFocus.current = "body")}
               onChange={(html) => change({ body: html })}
+              logoUrl={props.logoUrl}
             />
           </div>
+          <AttachmentsEditor key={`att-${editorKey}`} value={draft.attachments || ""} onChange={(v) => change({ attachments: v })} />
           <div>
             <p className="mb-1.5 text-xs text-muted-foreground">{ar.templates.variables}</p>
             <div className="flex flex-wrap gap-1">
@@ -261,6 +266,16 @@ export function TemplatesEditor(props: {
                 </div>
                 <iframe title="preview" className="h-[420px] w-full bg-white" sandbox="" srcDoc={preview.html} />
               </div>
+              {parseAttachments(draft.attachments).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {parseAttachments(draft.attachments).map((x) => (
+                    <span key={x.url} className="inline-flex max-w-full items-center gap-1 rounded-md border bg-muted/50 px-2 py-1 text-xs">
+                      <Paperclip className="size-3.5 shrink-0" />
+                      <span className="truncate">{x.name || x.url.split("/").filter(Boolean).pop()}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </section>
