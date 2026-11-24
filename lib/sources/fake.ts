@@ -2,7 +2,7 @@
 import { AppError } from "../errors";
 import { stableHash } from "../selection";
 import { splitList } from "./http";
-import type { ApolloFilters, Found, HunterFilters, OutscraperFilters, RevealResult, SearchResult } from "./types";
+import type { ApolloFilters, CompanyHit, Found, HunterDiscoverFilters, HunterFilters, OutscraperFilters, RevealResult, SearchResult } from "./types";
 
 const FIRST = ["أحمد", "سارة", "خالد", "نورة", "عمر", "ليلى", "يوسف", "مريم", "فهد", "هند", "Omar", "Lina", "Karim", "Dana"];
 const LAST = ["العتيبي", "الشمري", "حسن", "القحطاني", "منصور", "الزهراني", "Haddad", "Saleh", "Nasser"];
@@ -55,8 +55,27 @@ export async function fakeApolloReveal(key: string, ids: string[]): Promise<Reve
   return { items, credits: items.filter((i) => i.email).length, missing: ids.length - items.length };
 }
 
+export async function fakeHunterDiscover(key: string, f: HunterDiscoverFilters): Promise<{ companies: CompanyHit[]; total: number }> {
+  check(key);
+  await new Promise((r) => setTimeout(r, 400));
+  const seed = f.keywords.join(",") + (f.city || "") + (f.country || "");
+  const words = ["group", "co", "holding", "trading", "solutions", "partners", "est", "hub"];
+  const base = (f.keywords[0] || "company").toLowerCase().replace(/[^a-z0-9]+/g, "") || "company";
+  const companies = Array.from({ length: Math.min(f.limit || 20, 12) }, (_, i) => {
+    const h = stableHash(`${seed}:${i}`);
+    const w = words[h % words.length];
+    const total = (h % 30) + (i % 4 === 3 ? 0 : 2);
+    return { domain: `${base}-${w}${i + 1}.com`, name: `${base[0].toUpperCase()}${base.slice(1)} ${w[0].toUpperCase()}${w.slice(1)} ${i + 1}`, emails: total, personal: Math.round(total * 0.7), generic: total - Math.round(total * 0.7) };
+  });
+  return { companies, total: 340 };
+}
+
 export async function fakeHunterSearch(key: string, f: HunterFilters): Promise<SearchResult> {
   check(key);
+  if (f.domains?.length) {
+    const all = await Promise.all(f.domains.map((d) => fakeHunterSearch(key, { ...f, domains: undefined, domain: d })));
+    return { items: all.flatMap((r) => r.items), total: all.reduce((n, r) => n + r.items.length, 0) };
+  }
   await new Promise((r) => setTimeout(r, 400));
   const domain = (f.domain || f.company || "example.com").replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
   const n = 3 + (stableHash(domain) % 6);
