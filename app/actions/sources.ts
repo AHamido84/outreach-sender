@@ -9,7 +9,10 @@ import { appendContactRows, checkRows, countChecks, foundToRow } from "@/lib/imp
 import { getStore } from "@/lib/sheets";
 import { parseSheetId } from "@/lib/sheets/types";
 import { apiKey, sourceSettings, sourcesApi } from "@/lib/sources";
-import type { ApolloFilters, Found, HunterFilters, OutscraperFilters, Provider, SearchResult } from "@/lib/sources/types";
+import type { ApolloFilters, Found, HunterDiscoverFilters, HunterFilters, OutscraperFilters, Provider, SearchResult } from "@/lib/sources/types";
+import { companyDomain } from "@/lib/emails";
+import { TABS } from "@/lib/schema";
+import { get } from "@/lib/table";
 import { setKv } from "@/lib/table";
 
 const LABEL: Record<Provider, string> = { apollo: "Apollo", hunter: "Hunter", outscraper: "Google Maps" };
@@ -50,7 +53,8 @@ export async function searchSource(id: string, input: SearchInput & { dedup?: De
     const s = sourceSettings(ctx.sources);
     const key = apiKey(ctx.sources, input.provider);
     if (input.provider === "outscraper" && !input.pendingId && !input.filters.query?.trim()) throw new AppError("invalid_input", "query");
-    if (input.provider === "hunter" && !input.filters.domain?.trim() && !input.filters.company?.trim()) throw new AppError("invalid_input", "domain");
+    if (input.provider === "hunter" && !input.filters.domain?.trim() && !input.filters.company?.trim() && !input.filters.domains?.length)
+      throw new AppError("invalid_input", "domain");
     let r: SearchResult;
     if (input.provider === "apollo") r = await sourcesApi.apolloSearch(key, input.filters);
     else if (input.provider === "hunter")
@@ -58,7 +62,9 @@ export async function searchSource(id: string, input: SearchInput & { dedup?: De
     else if (input.pendingId) r = await sourcesApi.outscraperPoll(key, input.pendingId);
     else
       r = await sourcesApi.outscraperSearch(key, {
-        language: s.outLanguage, region: s.outRegion, findEmails: s.outFindEmails, ...input.filters,
+        language: s.outLanguage, region: s.outRegion, findEmails: s.outFindEmails,
+        // Only values the page actually set override the source's settings.
+        ...(Object.fromEntries(Object.entries(input.filters).filter(([, v]) => v !== undefined && v !== "")) as OutscraperFilters),
       });
     const checks = checkRows(ctx, r.items.map((f) => foundToRow(f, LABEL[input.provider])), input.dedup);
     // Results that still need an email reveal (Apollo) can't be checked yet.
@@ -122,5 +128,17 @@ export async function readExternalSheet(id: string, url: string, tab?: string) {
     if (rows.length > 5001) throw new AppError("invalid_input", "max 5000 rows");
     await logActivity({ sheetId: id }, "Read external sheet", `${meta.title} / ${name}: ${Math.max(0, rows.length - 1)} rows`);
     return { title: meta.title, tab: name, tabs, matrix: rows, serviceAccount: store.serviceAccountEmail() };
+  });
+}
+
+/** Hunter Discover (free): companies by keywords; each marked "known" when a contact from that domain already exists. */
+export async function discoverCompanies(id: string, filters: HunterDiscoverFilters) {
+  return act(async () => {
+    await requireSession();
+    if (!filters.keywords?.some((k) => k.trim()) && !filters.country) throw new AppError("invalid_input", "keywords");
+    const ctx = await loadWithSources(id);
+    const r = await sourcesApi.hunterDiscover(apiKey(ctx.sources, "hunter"), filters);
+    const known = new Set(ctx.t[TABS.contacts].rows.map((c) => companyDomain(get(c, "Email"), get(c, "Website"))).filter(Boolean));
+    return { ...r, companies: r.companies.map((c) => ({ ...c, known: known.has(c.domain) })) };
   });
 }

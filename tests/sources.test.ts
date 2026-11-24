@@ -109,3 +109,25 @@ describe("Hunter plan limit", () => {
     expect(r.items[0].email).toBe("a@d.org");
   });
 });
+
+describe("Hunter Discover (keywords)", async () => {
+  const { hunterDiscover } = await import("@/lib/sources/hunter");
+  it("posts keywords + location and maps companies", async () => {
+    const f = vi.fn(async (_u: string, _init?: RequestInit) => new Response(JSON.stringify({
+      data: [{ domain: "Acme.sa", organization: "Acme", emails_count: { personal: 7, generic: 2, total: 9 } }, { organization: "no domain" }],
+      meta: { results: 120 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", f);
+    const r = await hunterDiscover("K", { keywords: ["real estate", " dental "], country: "SA", city: "Riyadh", headcount: ["11-50"], limit: 500 });
+    expect(f.mock.calls[0][0]).toBe("https://api.hunter.io/v2/discover");
+    const body = JSON.parse(String(f.mock.calls[0][1]!.body));
+    expect(body).toEqual({
+      limit: 100,
+      keywords: { include: ["real estate", "dental"], match: "any" },
+      headquarters_location: { include: [{ country: "SA", city: "Riyadh" }] },
+      headcount: ["11-50"],
+    });
+    expect(r.total).toBe(120);
+    expect(r.companies).toEqual([{ domain: "acme.sa", name: "Acme", emails: 9, personal: 7, generic: 2 }]);
+  });
+});

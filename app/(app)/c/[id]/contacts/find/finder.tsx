@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { addFromSource, searchSource } from "@/app/actions/sources";
+import { addFromSource, discoverCompanies, searchSource } from "@/app/actions/sources";
 import { Section } from "@/components/app/bits";
 import { Confirm } from "@/components/app/confirm";
 import { ErrorBox } from "@/components/app/error-box";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ar } from "@/content/ar";
 import type { ErrorInfo } from "@/lib/errors";
-import type { Found, Provider } from "@/lib/sources/types";
+import type { CompanyHit, Found, Provider } from "@/lib/sources/types";
 import { cn } from "@/lib/utils";
 
 type Defaults = { tags: string; status: "Ready" | "New"; allowSameDomain: boolean; allowResend: boolean; hunterType: string; hunterMin: number; outFindEmails: boolean };
@@ -25,6 +25,13 @@ const TONE: Record<string, string> = { valid: "Done", duplicate: "Duplicate", dn
 const SENIORITIES = ["owner", "founder", "c_suite", "director", "manager", "head", "vp", "senior"];
 const EMPLOYEES = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000"];
 const H_SENIORITY = ["junior", "senior", "executive"];
+const H_HEADCOUNT = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"];
+// [ISO code, Arabic label, English name for Apollo]
+const COUNTRIES: [string, string, string][] = [
+  ["", "كل الدول", ""], ["SA", "السعودية", "Saudi Arabia"], ["EG", "مصر", "Egypt"], ["AE", "الإمارات", "United Arab Emirates"],
+  ["KW", "الكويت", "Kuwait"], ["QA", "قطر", "Qatar"], ["BH", "البحرين", "Bahrain"], ["OM", "عُمان", "Oman"], ["JO", "الأردن", "Jordan"],
+  ["MA", "المغرب", "Morocco"], ["TR", "تركيا", "Turkey"], ["GB", "المملكة المتحدة", "United Kingdom"], ["US", "الولايات المتحدة", "United States"],
+];
 
 function Chips({ options, value, onChange, label }: { options: [string, string][]; value: string[]; onChange: (v: string[]) => void; label: string }) {
   return (
@@ -53,24 +60,28 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
   const router = useRouter();
   const first = (["apollo", "hunter", "outscraper"] as Provider[]).find((p) => connected[p]) || "apollo";
   const [provider, setProvider] = useState<Provider>(first);
+  // Shared by every source
+  const [keywords, setKeywords] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
   // Apollo
   const [titles, setTitles] = useState("");
-  const [locations, setLocations] = useState("");
-  const [orgLocations, setOrgLocations] = useState("");
-  const [keywords, setKeywords] = useState("");
   const [domains, setDomains] = useState("");
   const [seniorities, setSeniorities] = useState<string[]>([]);
   const [employees, setEmployees] = useState<string[]>([]);
   const [verified, setVerified] = useState(false);
   const [perPage, setPerPage] = useState(25);
   // Hunter
+  const [hMode, setHMode] = useState<"keywords" | "domain">("keywords");
   const [domain, setDomain] = useState("");
   const [company, setCompany] = useState("");
   const [hType, setHType] = useState(defaults.hunterType);
   const [hMin, setHMin] = useState(defaults.hunterMin);
   const [hSeniority, setHSeniority] = useState<string[]>([]);
+  const [headcount, setHeadcount] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<null | { list: CompanyHit[]; total?: number }>(null);
+  const [selCo, setSelCo] = useState<Set<string>>(new Set());
   // Outscraper
-  const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(20);
   const [findEmails, setFindEmails] = useState(defaults.outFindEmails);
   // Results + add options
@@ -84,22 +95,50 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
   const [pending, start] = useTransition();
   const [adding, startAdd] = useTransition();
 
+  const kwList = keywords.split(/[,،\n]/).map((k) => k.trim()).filter(Boolean);
+  const countryRow = COUNTRIES.find((c) => c[0] === country);
+  const placeEn = [city.trim(), countryRow?.[2]].filter(Boolean).join(", ");
+  const placeAr = city.trim() || countryRow?.[1] || "";
+
   const run = (page = 1, pendingId?: string) =>
     start(async () => {
       setError(null);
       const dedup = { allowSameDomain, allowResend };
+      if (provider === "hunter" && hMode === "keywords") {
+        if (!kwList.length) return setError({ code: "need_keywords", detail: "" });
+        const r = await discoverCompanies(id, { keywords: kwList, country: country || undefined, city: country ? city : undefined, headcount, limit: 50 });
+        if (!r.ok) return setError(r.error);
+        setCompanies({ list: r.data.companies, total: r.data.total });
+        setSelCo(new Set(r.data.companies.filter((c) => !c.known && c.emails > 0).slice(0, 5).map((c) => c.domain)));
+        setResults(null);
+        return;
+      }
+      if (provider === "outscraper" && !pendingId && !kwList.length) return setError({ code: "need_keywords", detail: "" });
+      if (provider === "apollo" && !kwList.length && !titles.trim() && !domains.trim()) return setError({ code: "need_keywords", detail: "" });
       const r =
         provider === "apollo"
-          ? await searchSource(id, { provider, dedup, filters: { titles, locations, orgLocations, keywords, domains, seniorities, employees, emailStatus: verified ? "verified" : "any", page, perPage } })
+          ? await searchSource(id, { provider, dedup, filters: { titles, locations: placeEn, keywords: kwList.join(" "), domains, seniorities, employees, emailStatus: verified ? "verified" : "any", page, perPage } })
           : provider === "hunter"
             ? await searchSource(id, { provider, dedup, filters: { domain, company, type: hType as "personal", minConfidence: hMin, seniority: hSeniority, limit: 50 } })
-            : await searchSource(id, { provider, dedup, pendingId, filters: { query, limit, findEmails } });
+            : await searchSource(id, { provider, dedup, pendingId, filters: { query: [kwList.join(" "), placeAr].filter(Boolean).join("، "), region: country || undefined, limit, findEmails } });
       if (!r.ok) return setError(r.error);
       setResults(r.data as Results);
       setSel(new Set());
     });
 
-  const switchTo = (p: Provider) => { setProvider(p); setResults(null); setSel(new Set()); setError(null); };
+  const fetchEmails = () =>
+    start(async () => {
+      setError(null);
+      const r = await searchSource(id, {
+        provider: "hunter", dedup: { allowSameDomain, allowResend },
+        filters: { domains: [...selCo], type: hType as "personal", minConfidence: hMin, seniority: hSeniority, limit: 10 },
+      });
+      if (!r.ok) return setError(r.error);
+      setResults(r.data as Results);
+      setSel(new Set());
+    });
+
+  const switchTo = (p: Provider) => { setProvider(p); setResults(null); setCompanies(null); setSel(new Set()); setError(null); };
   const selectable = (i: number) => results && !["dnc", "no_email", "invalid"].includes(results.status[i]);
   const selectNew = () => results && setSel(new Set(results.items.filter((_, i) => ["valid", "reveal"].includes(results.status[i])).map((f) => f.key)));
   const picked = results?.items.filter((f) => sel.has(f.key)) || [];
@@ -117,13 +156,33 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
       );
       setSel(new Set());
       router.refresh();
-      run(results?.page || 1);
+      if (provider === "hunter" && hMode === "keywords") fetchEmails();
+      else run(results?.page || 1);
     });
 
   const anyConnected = Object.values(connected).some(Boolean);
 
   return (
     <div className="space-y-4">
+      {/* Shared search bar: the same keywords and place go to every source */}
+      <Section>
+        <form onSubmit={(e) => { e.preventDefault(); run(1); }} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] md:items-end">
+          <Field id="kw" label={ar.sources.f.keywords}>
+            <Input id="kw" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder={ar.sources.f.keywordsPh} />
+          </Field>
+          <Field id="ct" label={ar.sources.f.country}>
+            <select id="ct" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={country} onChange={(e) => setCountry(e.target.value)}>
+              {COUNTRIES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+            </select>
+          </Field>
+          <Field id="cy" label={ar.sources.f.city}>
+            <Input id="cy" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Riyadh" />
+          </Field>
+          <Button type="submit" disabled={pending || !connected[provider]}>{pending ? <Loader2 className="animate-spin" /> : <Search />}{pending ? ar.sources.searching : ar.sources.search}</Button>
+          <p className="text-xs text-muted-foreground md:col-span-4">{ar.sources.keywordsTip}</p>
+        </form>
+      </Section>
+
       <div className="flex flex-wrap gap-1 rounded-lg border p-0.5 sm:w-fit">
         {(["apollo", "hunter", "outscraper"] as Provider[]).map((p) => (
           <button key={p} type="button" onClick={() => switchTo(p)}
@@ -142,53 +201,104 @@ export function SourceFinder({ id, connected, defaults }: { id: string; connecte
           {!anyConnected && <p className="mt-3 text-xs text-muted-foreground">{ar.sources.settingsHint}</p>}
         </Section>
       ) : (
-        <Section>
-          <p className="mb-4 text-sm text-muted-foreground">{ar.sources.providers[provider].desc}</p>
+        <Section title={ar.sources.moreFilters}>
           <form onSubmit={(e) => { e.preventDefault(); run(1); }} className="space-y-4">
             {provider === "apollo" && (
               <div className="grid gap-3 md:grid-cols-2">
-                <Field id="a-t" label={ar.sources.f.titles}><Input id="a-t" value={titles} onChange={(e) => setTitles(e.target.value)} placeholder={ar.sources.f.titlesPh} /></Field>
-                <Field id="a-l" label={ar.sources.f.locations}><Input id="a-l" value={locations} onChange={(e) => setLocations(e.target.value)} placeholder={ar.sources.f.locationsPh} /></Field>
-                <Field id="a-o" label={ar.sources.f.orgLocations}><Input id="a-o" value={orgLocations} onChange={(e) => setOrgLocations(e.target.value)} placeholder={ar.sources.f.locationsPh} /></Field>
-                <Field id="a-k" label={ar.sources.f.keywords}><Input id="a-k" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="real estate, dental" /></Field>
+                <Field id="a-t" label={ar.sources.f.titlesOptional}><Input id="a-t" value={titles} onChange={(e) => setTitles(e.target.value)} placeholder={ar.sources.f.titlesPh} /></Field>
                 <Field id="a-d" label={ar.sources.f.domains}><Input id="a-d" dir="ltr" value={domains} onChange={(e) => setDomains(e.target.value)} placeholder="acme.com, example.sa" /></Field>
+                <Chips label={ar.sources.f.seniorities} value={seniorities} onChange={setSeniorities} options={SENIORITIES.map((s) => [s, ar.sources.seniority[s]])} />
+                <Chips label={ar.sources.f.employees} value={employees} onChange={setEmployees} options={EMPLOYEES.map((e) => [e, e.replace(",", "–")])} />
                 <Field id="a-p" label={ar.sources.f.perPage}>
                   <select id="a-p" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
                     {[10, 25, 50, 100].map((n) => <option key={n}>{n}</option>)}
                   </select>
                 </Field>
-                <Chips label={ar.sources.f.seniorities} value={seniorities} onChange={setSeniorities} options={SENIORITIES.map((s) => [s, ar.sources.seniority[s]])} />
-                <Chips label={ar.sources.f.employees} value={employees} onChange={setEmployees} options={EMPLOYEES.map((e) => [e, e.replace(",", "–")])} />
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={verified} onCheckedChange={(v) => setVerified(!!v)} />{ar.sources.f.verifiedOnly}</label>
               </div>
             )}
             {provider === "hunter" && (
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field id="h-d" label={ar.sources.f.domain}><Input id="h-d" dir="ltr" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={ar.sources.f.domainPh} /></Field>
-                <Field id="h-c" label={ar.sources.f.company}><Input id="h-c" value={company} onChange={(e) => setCompany(e.target.value)} /></Field>
-                <Field id="h-t" label={ar.sources.f.emailType}>
-                  <select id="h-t" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={hType} onChange={(e) => setHType(e.target.value)}>
-                    {Object.entries(ar.sources.emailTypes).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                  </select>
-                </Field>
-                <Field id="h-m" label={ar.sources.f.minConfidence}><Input id="h-m" type="number" min={0} max={100} value={hMin} onChange={(e) => setHMin(Number(e.target.value))} /></Field>
-                <Chips label={ar.sources.f.seniorities} value={hSeniority} onChange={setHSeniority} options={H_SENIORITY.map((s) => [s, ar.sources.hunterSeniority[s]])} />
-                <p className="text-xs text-muted-foreground md:col-span-2">{ar.sources.hunterTip}</p>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-1 rounded-lg border p-0.5 sm:w-fit">
+                  {(["keywords", "domain"] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => { setHMode(m); setCompanies(null); setResults(null); }}
+                      className={cn("rounded-md px-3 py-1.5 text-sm", hMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                      {m === "keywords" ? ar.sources.hunterByKeywords : ar.sources.hunterByDomain}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {hMode === "domain" ? (
+                    <>
+                      <Field id="h-d" label={ar.sources.f.domain}><Input id="h-d" dir="ltr" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={ar.sources.f.domainPh} /></Field>
+                      <Field id="h-c" label={ar.sources.f.company}><Input id="h-c" value={company} onChange={(e) => setCompany(e.target.value)} /></Field>
+                    </>
+                  ) : (
+                    <div className="md:col-span-2">
+                      <Chips label={ar.sources.f.companySize} value={headcount} onChange={setHeadcount} options={H_HEADCOUNT.map((h) => [h, h])} />
+                    </div>
+                  )}
+                  <Field id="h-t" label={ar.sources.f.emailType}>
+                    <select id="h-t" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={hType} onChange={(e) => setHType(e.target.value)}>
+                      {Object.entries(ar.sources.emailTypes).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                  </Field>
+                  <Field id="h-m" label={ar.sources.f.minConfidence}><Input id="h-m" type="number" min={0} max={100} value={hMin} onChange={(e) => setHMin(Number(e.target.value))} /></Field>
+                  <Chips label={ar.sources.f.seniorities} value={hSeniority} onChange={setHSeniority} options={H_SENIORITY.map((s) => [s, ar.sources.hunterSeniority[s]])} />
+                  <p className="text-xs text-muted-foreground md:col-span-2">{hMode === "keywords" ? ar.sources.hunterKeywordsTip : ar.sources.hunterTip}</p>
+                </div>
               </div>
             )}
             {provider === "outscraper" && (
               <div className="grid gap-3 md:grid-cols-3">
-                <div className="md:col-span-2"><Field id="o-q" label={ar.sources.f.query}><Input id="o-q" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={ar.sources.f.queryPh} /></Field></div>
                 <Field id="o-l" label={ar.sources.f.limit}>
                   <select id="o-l" className="h-8 w-full rounded-lg border bg-background px-2 text-sm" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
                     {[10, 20, 50, 100].map((n) => <option key={n}>{n}</option>)}
                   </select>
                 </Field>
-                <label className="flex items-center gap-2 text-sm md:col-span-3"><Checkbox checked={findEmails} onCheckedChange={(v) => setFindEmails(!!v)} />{ar.sources.f.findEmails}</label>
+                <label className="flex items-center gap-2 text-sm md:col-span-2"><Checkbox checked={findEmails} onCheckedChange={(v) => setFindEmails(!!v)} />{ar.sources.f.findEmails}</label>
+                <p className="text-xs text-muted-foreground md:col-span-3">{ar.sources.mapsQuery}: <b>{[kwList.join(" "), placeAr].filter(Boolean).join("، ") || "—"}</b></p>
               </div>
             )}
-            <Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Search />}{pending ? ar.sources.searching : ar.sources.search}</Button>
           </form>
+        </Section>
+      )}
+
+      {provider === "hunter" && hMode === "keywords" && companies && (
+        <Section
+          title={ar.sources.companiesFound(companies.list.length, companies.total)}
+          actions={
+            <Button disabled={!selCo.size || pending} onClick={fetchEmails}>
+              {pending ? <Loader2 className="animate-spin" /> : <Search />}{ar.sources.fetchEmails(selCo.size)}
+            </Button>
+          }
+        >
+          {!companies.list.length ? (
+            <p className="text-sm text-muted-foreground">{ar.sources.noResults}</p>
+          ) : (
+            <div className="max-h-80 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card text-xs text-muted-foreground">
+                  <tr className="[&>th]:px-2 [&>th]:py-1.5 [&>th]:text-start">
+                    <th className="w-8" /><th>{ar.sources.columns.company}</th><th>{ar.sources.columns.domain}</th><th>{ar.sources.columns.emails}</th><th />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {companies.list.map((c) => (
+                    <tr key={c.domain} className={cn("[&>td]:px-2 [&>td]:py-1.5", selCo.has(c.domain) && "bg-primary/5")}>
+                      <td><Checkbox checked={selCo.has(c.domain)} disabled={!c.emails} aria-label={c.domain}
+                        onCheckedChange={() => setSelCo((s) => { const n = new Set(s); if (n.has(c.domain)) n.delete(c.domain); else n.add(c.domain); return n; })} /></td>
+                      <td className="font-medium">{c.name}</td>
+                      <td className="font-mono text-xs"><a href={`https://${c.domain}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">{c.domain}</a></td>
+                      <td className="tabular-nums">{c.emails}<span className="ms-1 text-xs text-muted-foreground">({c.personal} {ar.sources.emailTypes.personal})</span></td>
+                      <td>{c.known && <Pill tone="Duplicate">{ar.sources.knownCompany}</Pill>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">{ar.sources.fetchEmailsNote}</p>
         </Section>
       )}
 

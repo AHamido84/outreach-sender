@@ -5,10 +5,10 @@ import { isDemo } from "../env";
 import { AppError } from "../errors";
 import { isYes } from "../selection";
 import { apolloReveal, apolloSearch, apolloTest } from "./apollo";
-import { fakeApolloReveal, fakeApolloSearch, fakeHunterSearch, fakeOutscraperSearch } from "./fake";
-import { hunterSearch, hunterTest } from "./hunter";
+import { fakeApolloReveal, fakeApolloSearch, fakeHunterDiscover, fakeHunterSearch, fakeOutscraperSearch } from "./fake";
+import { hunterDiscover, hunterSearch, hunterTest } from "./hunter";
 import { outscraperPoll, outscraperSearch } from "./outscraper";
-import type { ApolloFilters, HunterFilters, OutscraperFilters, Provider } from "./types";
+import type { ApolloFilters, HunterDiscoverFilters, HunterFilters, OutscraperFilters, Provider } from "./types";
 
 export const KEY_OF: Record<Provider, string> = { apollo: "Apollo API Key", hunter: "Hunter API Key", outscraper: "Outscraper API Key" };
 
@@ -35,6 +35,7 @@ export function apiKey(kv: Kv, p: Provider): string {
 export const sourcesApi = {
   apolloSearch: (key: string, f: ApolloFilters) => (isDemo() ? fakeApolloSearch(key, f) : apolloSearch(key, f)),
   apolloReveal: (key: string, ids: string[], personal: boolean) => (isDemo() ? fakeApolloReveal(key, ids) : apolloReveal(key, ids, { personalEmails: personal })),
+  hunterDiscover: (key: string, f: HunterDiscoverFilters) => (isDemo() ? fakeHunterDiscover(key, f) : hunterDiscover(key, f)),
   hunterSearch: (key: string, f: HunterFilters) => (isDemo() ? fakeHunterSearch(key, f) : hunterSearch(key, f)),
   outscraperSearch: (key: string, f: OutscraperFilters) => (isDemo() ? fakeOutscraperSearch(key, f) : outscraperSearch(key, f)),
   outscraperPoll: (key: string, id: string) => (isDemo() ? Promise.resolve({ items: [] }) : outscraperPoll(key, id)),

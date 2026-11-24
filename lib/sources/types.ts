@@ -38,6 +38,8 @@ export type ApolloFilters = {
 
 export type HunterFilters = {
   domain?: string;
+  /** Several domains at once (companies picked from a Discover search). */
+  domains?: string[];
   company?: string;
   type?: "personal" | "generic" | "all";
   seniority?: string[];
@@ -46,6 +48,18 @@ export type HunterFilters = {
   offset?: number;
   minConfidence?: number;
 };
+
+/** Hunter Discover: free company search by keywords (returns domains, not people). */
+export type HunterDiscoverFilters = {
+  keywords: string[];
+  match?: "any" | "all";
+  country?: string; // ISO 3166-1 alpha-2
+  city?: string;
+  headcount?: string[]; // "1-10", "11-50", …
+  limit?: number;
+};
+
+export type CompanyHit = { domain: string; name: string; emails: number; personal: number; generic: number; known?: boolean };
 
 export type OutscraperFilters = {
   query: string; // "restaurants, Riyadh"
